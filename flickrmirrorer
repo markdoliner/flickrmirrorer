@@ -1,0 +1,339 @@
+#!/usr/bin/env python
+
+# A small python script that saves copies of your Flickr photos and
+# metadata to your local hard disk.
+#
+# Licensed as follows (this is the 2-clause BSD license, aka
+# "Simplified BSD License" or "FreeBSD License"):
+#
+# Copyright (c) 2012, Mark Doliner
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# - Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+import errno
+import math
+import os
+import shutil
+import sys
+import urllib
+
+try:
+	# We try importing simplejson first because it's faster than json
+	# in python 2.7 and lower
+	import simplejson as json
+except ImportError:
+	import json
+
+try:
+	import flickrapi
+except ImportError:
+	sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
+	sys.exit(1)
+
+API_KEY = '9c5c431017e712bde232a2f142703bb2'
+API_SECRET = '7c024f6e7a36fc03'
+
+PLEASE_GRANT_AUTHORIZATION_MSG = """
+Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
+Press 'return' when finished.
+
+"""
+
+NUM_PHOTOS_PER_BATCH = 500
+
+def ensure_dir_exists(path):
+	"""Create the directory 'path' if it does not exist.
+	Calls sys.exit(1) if any directory could not be created."""
+	try:
+		os.makedirs(path)
+	except OSError, e:
+		if e.errno != errno.EEXIST:
+			sys.stderr.write('Error creating destination directory %s: %s\n'
+					% (path, e.strerror))
+			sys.exit(1)
+
+def ensure_dir_doesnt_exist(path):
+	try:
+		shutil.rmtree(path)
+	except OSError, e:
+		if e.errno != errno.ENOENT:
+			sys.stderr.write('Error removing %s: %s\n' % (path, e.strerror))
+			sys.exit(1)
+
+# flickrapi should really do this for us :-(
+def parse_json_response(rsp):
+	"""Parse the flickr API response as JSON."""
+	# Strip off the "jsonFlickrApi({...});" wrapper
+	rsp = rsp[14:-1]
+	rsp = json.loads(rsp)
+	if rsp['stat'] != 'ok':
+		sys.stderr.write('API request failed: Error %(code)s: %(message)s\n' % rsp)
+		sys.exit(1)
+	return rsp
+
+class FlickrMirrorer:
+	dest_dir = None
+	photostream_dir = None
+	tmp_filename = None
+	flickr = None
+
+	def __init__(self, dest_dir):
+		self.dest_dir = dest_dir
+		self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
+		self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
+
+		# Create flickrapi instance
+		self.flickr = flickrapi.FlickrAPI(API_KEY, API_SECRET)
+
+	def run(self):
+		# Authenticate
+		(token, frob) = self.flickr.get_token_part_one(perms='read')
+		if not token:
+			raw_input(PLEASE_GRANT_AUTHORIZATION_MSG)
+		try:
+			self.flickr.get_token_part_two((token, frob))
+		except flickrapi.exceptions.FlickrError, e:
+			sys.stderr.write('Error authenticating: %s\n' % e.message)
+			sys.exit(1)
+
+		# Create destination directory
+		ensure_dir_exists(self.dest_dir)
+
+		# Fetch photos
+		self.download_all_photos()
+
+		# Create sets and collections
+		self.mirror_photosets()
+		self.create_not_in_photoset_dir()
+		# TODO: Comments
+		# TODO: Collections
+
+	def download_all_photos(self):
+		"""Download all our pictures and metadata.
+		If you have a lot of photos then this function will take a while."""
+
+		print('Fetching all photos from photostream')
+
+		ensure_dir_exists(self.photostream_dir)
+
+		old_files = os.listdir(self.photostream_dir)
+		new_files = set()
+
+		current_page = 1
+		while True:
+			rsp = self.flickr.people_getPhotos(
+					user_id='me',
+					extras='description,license,date_upload,date_taken,owner_name,icon_server,original_format,last_update,geo,tags,machine_tags,o_dims,views,media',
+					per_page=NUM_PHOTOS_PER_BATCH,
+					page=current_page,
+					format='json',
+			)
+			rsp = parse_json_response(rsp)
+
+			photos = rsp['photos']['photo']
+			if not photos:
+				# We've reached the end of the photostream.  Stop looping.
+				break
+			for photo in photos:
+				new_files |= self.download_photo(photo)
+
+			current_page += 1
+
+		unknown_files = set(old_files) - set(new_files)
+		for unknown_file in unknown_files:
+			unknown_filename = os.path.join(self.photostream_dir, unknown_file)
+			print('Deleting unknown file: %s' % unknown_filename)
+			try:
+				os.remove(unknown_filename)
+			except OSError, e:
+				sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
+				sys.exit(1)
+
+	def download_photo(self, photo):
+		"""Fetch and save a photo and the metadata for the photo.
+
+		Returns a set containing the filenames for the data."""
+		url = 'http://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
+		photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+		photo_filename = os.path.join(self.photostream_dir, photo_basename)
+		metadata_basename = '%s.metadata' % photo_basename
+		metadata_filename = '%s.metadata' % photo_filename
+
+		# Sanity check
+		if os.path.isdir(photo_filename) or os.path.islink(photo_filename):
+			sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % photo_filename)
+			sys.exit(1)
+
+		# Sanity check
+		if os.path.isdir(metadata_filename) or os.path.islink(metadata_filename):
+			sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % metadata_filename)
+			sys.exit(1)
+
+		# Write metadata
+		self.write_json_if_changed(metadata_filename, photo)
+
+		# Check if we should fetch the image
+		if not os.path.exists(photo_filename) \
+				or int(photo['lastupdate']) >= os.lstat(photo_filename).st_mtime:
+			# We don't have this photo or the version on the server is newer
+			print('Fetching %s' % url)
+			data = urllib.urlretrieve(url, tmp_filename)
+			os.rename(tmp_filename, photo_filename)
+		else:
+			print('Skipping %s because we already have it' % url)
+
+		return {photo_basename, metadata_basename}
+
+	def mirror_photosets(self):
+		"""Create a directory for each photoset, and create symlinks to the
+		files in the photostream."""
+
+		print('Creating local directories for sets')
+
+		# Fetch photosets
+		rsp = self.flickr.photosets_getList(
+				format='json',
+		)
+		rsp = parse_json_response(rsp)
+
+		for photoset in rsp['photosets']['photoset']:
+			print('Creating local set %s' % photoset['title']['_content'])
+
+			# TODO: We use the photoset ID in the directory name to avoid
+			#       conflicts when there are two sets with the same name.  Is
+			#       there a better way to handle that?  Maybe by using the date
+			#       of the oldest picture instead?
+			safe_photoset_title = urllib.quote(photoset['title']['_content'], " ',")
+			photoset_dir = os.path.join(self.dest_dir, 'Set %s - %s' % (photoset['id'], safe_photoset_title))
+			self.mirror_photoset(photoset_dir, photoset)
+
+	def mirror_photoset(self, photoset_dir, photoset):
+		metadata_filename = os.path.join(photoset_dir, 'metadata')
+
+		# TODO: Ideally we would inspect the existing set and make sure it's
+		# correct but that's a lot of work.  For now just recreate all the sets.
+		ensure_dir_doesnt_exist(photoset_dir)
+		ensure_dir_exists(photoset_dir)
+
+		# Write metadata
+		self.write_json_if_changed(metadata_filename, photoset)
+
+		# Fetch list of photos
+		num_pages = int(math.ceil(float(photoset['photos']) / NUM_PHOTOS_PER_BATCH))
+		for current_page in range(1, num_pages + 1):
+			# Fetch photos in this photoset
+			rsp = self.flickr.photosets_getPhotos(
+					photoset_id=photoset['id'],
+					extras='original_format',
+					per_page=NUM_PHOTOS_PER_BATCH,
+					page=current_page,
+					format='json',
+			)
+			rsp = parse_json_response(rsp)
+
+			for photo in rsp['photoset']['photo']:
+				photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+				photo_filename = os.path.join('..', 'photostream', photo_basename)
+				symlink_filename = os.path.join(photoset_dir, photo_basename)
+				os.symlink(photo_filename, symlink_filename)
+
+	def create_not_in_photoset_dir(self):
+		"""Create a directory for photos that aren't in any photoset, and
+		create symlinks to the files in the photostream."""
+
+		print('Creating local directory for photos not in a set')
+
+		photoset_dir = os.path.join(self.dest_dir, 'Not in any set')
+
+		# TODO: Ideally we would inspect the existing set and make sure it's
+		# correct but that's a lot of work.  For now just recreate all the sets.
+		ensure_dir_doesnt_exist(photoset_dir)
+		ensure_dir_exists(photoset_dir)
+
+		# Fetch list of photos
+		current_page = 1
+		while True:
+			# Fetch photos in this photoset
+			rsp = self.flickr.photos_getNotInSet(
+					extras='original_format',
+					per_page=NUM_PHOTOS_PER_BATCH,
+					page=current_page,
+					format='json',
+			)
+			rsp = parse_json_response(rsp)
+			photos = rsp['photos']['photo']
+			if not photos:
+				# We've reached the end of the photostream.  Stop looping.
+				break
+
+			for photo in photos:
+				photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+				photo_filename = os.path.join('..', 'photostream', photo_basename)
+				symlink_filename = os.path.join(photoset_dir, photo_basename)
+				os.symlink(photo_filename, symlink_filename)
+
+			current_page += 1
+
+	# Using this function isn't really necessary, but it's nice to avoid
+	# unnecessarily changing the timestamps on metadata files.
+	def write_json_if_changed(self, filename, data):
+		"""Write the given data to the specified filename, but only if it's
+		different from what is currently there."""
+		try:
+			orig_data = json.load(open(filename))
+			if orig_data == data:
+				# Data has not changed--do nothing.
+				return
+		except IOError, e:
+			if e.errno != errno.ENOENT:
+				sys.stderr.write('Error reading %s: %s\n' % (filename, e))
+				sys.exit(1)
+
+		f = open(self.tmp_filename, 'w')
+		json.dump(data, f)
+		f.close()
+		os.rename(self.tmp_filename, filename)
+
+	def cleanup(self):
+		# Remove a temp file, if one exists
+		try:
+			os.remove(self.tmp_filename)
+		except OSError, e:
+			if e.errno != errno.ENOENT:
+				sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, e))
+
+if __name__ == '__main__':
+	mirrorer = None
+	try:
+		if len(sys.argv) != 2:
+			sys.stderr.write('usage: %s <destination directory>\n' % sys.argv[0])
+			sys.exit(1)
+		dest_dir = sys.argv[1]
+		mirrorer = FlickrMirrorer(dest_dir)
+		mirrorer.run()
+	except KeyboardInterrupt:
+		# User exited with CTRL+C
+		if mirrorer:
+			mirrorer.cleanup()
+
+		# Print a newline to leave the console in a prettier state
+		print
