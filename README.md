@@ -6,14 +6,12 @@ Flickr data.  It mirrors images, titles, description, tags and sets.
 Available at https://github.com/markdoliner/flickrmirrorer
 
 
-
 Requirements
 ============
-* python 2.?
+* python 2.something
 * python flickrapi library.
   * Homepage: http://stuvel.eu/flickrapi
   * Ubuntu: apt-get install python-flickrapi
-
 
 
 Usage
@@ -23,10 +21,10 @@ e.x. ./flickrmirrorer /mnt/backup/flickr/
 You may want to run this from cron.
 
 
-
 Output
 ======
 Creates this directory hierarchy:
+<pre>
     dest_dir/
     dest_dir/photostream/
     dest_dir/photostream/12345.jpg
@@ -40,6 +38,7 @@ Creates this directory hierarchy:
     dest_dir/Set 6789 - Pretty Waterfalls/
     dest_dir/Set 6789 - Pretty Waterfalls/12346.jpg
     dest_dir/Set 6789 - Pretty Waterfalls/12347.jpg
+</pre>
 
 Routine status is printed to stdout.
 Errors are printed to stderr.
