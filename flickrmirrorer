@@ -121,15 +121,15 @@ class FlickrMirrorer:
         ensure_dir_exists(self.dest_dir)
 
         # Fetch photos
-        self.download_all_photos()
+        self._download_all_photos()
 
         # Create sets and collections
-        self.mirror_photosets()
-        self.create_not_in_photoset_dir()
+        self._mirror_photosets()
+        self._create_not_in_photoset_dir()
         # TODO: Comments
         # TODO: Collections
 
-    def download_all_photos(self):
+    def _download_all_photos(self):
         """Download all our pictures and metadata.
         If you have a lot of photos then this function will take a while."""
 
@@ -156,7 +156,7 @@ class FlickrMirrorer:
                 # We've reached the end of the photostream.  Stop looping.
                 break
             for photo in photos:
-                new_files |= self.download_photo(photo)
+                new_files |= self._download_photo(photo)
 
             current_page += 1
 
@@ -170,7 +170,7 @@ class FlickrMirrorer:
                 sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
                 sys.exit(1)
 
-    def download_photo(self, photo):
+    def _download_photo(self, photo):
         """Fetch and save a photo and the metadata for the photo.
 
         Returns a set containing the filenames for the data."""
@@ -191,7 +191,7 @@ class FlickrMirrorer:
             sys.exit(1)
 
         # Write metadata
-        self.write_json_if_changed(metadata_filename, photo)
+        self._write_json_if_changed(metadata_filename, photo)
 
         # Check if we should fetch the image
         if not os.path.exists(photo_filename) \
@@ -205,7 +205,7 @@ class FlickrMirrorer:
 
         return {photo_basename, metadata_basename}
 
-    def mirror_photosets(self):
+    def _mirror_photosets(self):
         """Create a directory for each photoset, and create symlinks to the
         files in the photostream."""
 
@@ -226,9 +226,9 @@ class FlickrMirrorer:
             #       of the oldest picture instead?
             safe_photoset_title = urllib.quote(photoset['title']['_content'], " ',")
             photoset_dir = os.path.join(self.dest_dir, 'Set %s - %s' % (photoset['id'], safe_photoset_title))
-            self.mirror_photoset(photoset_dir, photoset)
+            self._mirror_photoset(photoset_dir, photoset)
 
-    def mirror_photoset(self, photoset_dir, photoset):
+    def _mirror_photoset(self, photoset_dir, photoset):
         metadata_filename = os.path.join(photoset_dir, 'metadata')
 
         # TODO: Ideally we would inspect the existing set and make sure it's
@@ -237,7 +237,7 @@ class FlickrMirrorer:
         ensure_dir_exists(photoset_dir)
 
         # Write metadata
-        self.write_json_if_changed(metadata_filename, photoset)
+        self._write_json_if_changed(metadata_filename, photoset)
 
         # Fetch list of photos
         num_pages = int(math.ceil(float(photoset['photos']) / NUM_PHOTOS_PER_BATCH))
@@ -258,7 +258,7 @@ class FlickrMirrorer:
                 symlink_filename = os.path.join(photoset_dir, photo_basename)
                 os.symlink(photo_filename, symlink_filename)
 
-    def create_not_in_photoset_dir(self):
+    def _create_not_in_photoset_dir(self):
         """Create a directory for photos that aren't in any photoset, and
         create symlinks to the files in the photostream."""
 
@@ -297,7 +297,7 @@ class FlickrMirrorer:
 
     # Using this function isn't really necessary, but it's nice to avoid
     # unnecessarily changing the timestamps on metadata files.
-    def write_json_if_changed(self, filename, data):
+    def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
         different from what is currently there."""
         try:
