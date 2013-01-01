@@ -42,3 +42,9 @@ dest_dir/Set 6789 - Pretty Waterfalls/12347.jpg -> ../photostream/12347.jpg
 
 Routine status is printed to stdout.
 Errors are printed to stderr.
+
+
+TODO
+====
+* Mirror comments
+* Mirror collections

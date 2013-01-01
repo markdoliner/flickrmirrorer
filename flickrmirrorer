@@ -132,8 +132,6 @@ class FlickrMirrorer:
         # Create sets and collections
         self._mirror_photosets()
         self._create_not_in_photoset_dir()
-        # TODO: Comments
-        # TODO: Collections
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
