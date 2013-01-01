@@ -25,19 +25,19 @@ Output
 ======
 Creates this directory hierarchy:
 <pre>
-    dest_dir/
-    dest_dir/photostream/
-    dest_dir/photostream/12345.jpg
-    dest_dir/photostream/12345.jpg.metadata
-    dest_dir/photostream/12346.jpg
-    dest_dir/photostream/12346.jpg.metadata
-    dest_dir/photostream/12347.jpg
-    dest_dir/photostream/12347.jpg.metadata
-    dest_dir/Not in any set/
-    dest_dir/Not in any set/12345.jpg -> ../photostream/12345.jpg
-    dest_dir/Set 6789 - Pretty Waterfalls/
-    dest_dir/Set 6789 - Pretty Waterfalls/12346.jpg
-    dest_dir/Set 6789 - Pretty Waterfalls/12347.jpg
+dest\_dir
+dest\_dir/photostream/
+dest\_dir/photostream/12345.jpg
+dest\_dir/photostream/12345.jpg.metadata
+dest\_dir/photostream/12346.jpg
+dest\_dir/photostream/12346.jpg.metadata
+dest\_dir/photostream/12347.jpg
+dest\_dir/photostream/12347.jpg.metadata
+dest\_dir/Not in any set/
+dest\_dir/Not in any set/12345.jpg -> ../photostream/12345.jpg
+dest\_dir/Set 6789 - Pretty Waterfalls/
+dest\_dir/Set 6789 - Pretty Waterfalls/12346.jpg
+dest\_dir/Set 6789 - Pretty Waterfalls/12347.jpg
 </pre>
 
 Routine status is printed to stdout.
