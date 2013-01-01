@@ -107,6 +107,12 @@ class FlickrMirrorer:
         self.flickr = flickrapi.FlickrAPI(API_KEY, API_SECRET)
 
     def run(self):
+        try:
+            self._run_helper()
+        finally:
+            self._cleanup()
+
+    def _run_helper(self):
         # Authenticate
         (token, frob) = self.flickr.get_token_part_one(perms='read')
         if not token:
@@ -315,7 +321,7 @@ class FlickrMirrorer:
         f.close()
         os.rename(self.tmp_filename, filename)
 
-    def cleanup(self):
+    def _cleanup(self):
         # Remove a temp file, if one exists
         try:
             os.remove(self.tmp_filename)
@@ -324,7 +330,6 @@ class FlickrMirrorer:
                 sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, e))
 
 if __name__ == '__main__':
-    mirrorer = None
     try:
         if len(sys.argv) != 2:
             sys.stderr.write('usage: %s <destination directory>\n' % sys.argv[0])
@@ -334,8 +339,5 @@ if __name__ == '__main__':
         mirrorer.run()
     except KeyboardInterrupt:
         # User exited with CTRL+C
-        if mirrorer:
-            mirrorer.cleanup()
-
         # Print a newline to leave the console in a prettier state
         print
