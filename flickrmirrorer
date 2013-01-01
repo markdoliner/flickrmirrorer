@@ -209,7 +209,7 @@ class FlickrMirrorer:
         """Create a directory for each photoset, and create symlinks to the
         files in the photostream."""
 
-        print('Creating local directories for sets')
+        print('Creating local sets...')
 
         # Fetch photosets
         rsp = self.flickr.photosets_getList(
