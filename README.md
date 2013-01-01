@@ -1,7 +1,8 @@
 About
 =====
 A small command-line python script that creates a local backup of your
-Flickr data.  It mirrors images, titles, description, tags and sets.
+Flickr data.  It mirrors images, titles, description, tags, sets and
+collections.
 
 Available at https://github.com/markdoliner/flickrmirrorer
 
@@ -47,4 +48,5 @@ Errors are printed to stderr.
 TODO
 ====
 * Mirror comments
-* Mirror collections
+* Store order of photos in sets and photostream
+* Store order of sets in collections

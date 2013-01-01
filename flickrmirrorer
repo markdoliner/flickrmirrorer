@@ -132,6 +132,7 @@ class FlickrMirrorer:
         # Create sets and collections
         self._mirror_photosets()
         self._create_not_in_photoset_dir()
+        self._mirror_collections()
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
@@ -212,7 +213,6 @@ class FlickrMirrorer:
     def _mirror_photosets(self):
         """Create a directory for each photoset, and create symlinks to the
         files in the photostream."""
-
         print('Creating local sets...')
 
         # Fetch photosets
@@ -220,27 +220,22 @@ class FlickrMirrorer:
                 format='json',
         )
         rsp = parse_json_response(rsp)
-
         for photoset in rsp['photosets']['photoset']:
-            print('Creating local set %s' % photoset['title']['_content'])
+            self._mirror_photoset(photoset)
 
-            # TODO: We use the photoset ID in the directory name to avoid
-            #       conflicts when there are two sets with the same name.  Is
-            #       there a better way to handle that?  Maybe by using the date
-            #       of the oldest picture instead?
-            safe_photoset_title = urllib.quote(photoset['title']['_content'], " ',")
-            photoset_dir = os.path.join(self.dest_dir, 'Set %s - %s' % (photoset['id'], safe_photoset_title))
-            self._mirror_photoset(photoset_dir, photoset)
+    def _mirror_photoset(self, photoset):
+        print('Creating local set %s' % photoset['title']['_content'])
 
-    def _mirror_photoset(self, photoset_dir, photoset):
-        metadata_filename = os.path.join(photoset_dir, 'metadata')
+        photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
+        photoset_dir = os.path.join(self.dest_dir, photoset_basename)
 
         # TODO: Ideally we would inspect the existing set and make sure it's
-        # correct but that's a lot of work.  For now just recreate all the sets.
+        # correct, but that's a lot of work.  For now just recreate all the sets.
         ensure_dir_doesnt_exist(photoset_dir)
         ensure_dir_exists(photoset_dir)
 
         # Write metadata
+        metadata_filename = os.path.join(photoset_dir, 'metadata')
         self._write_json_if_changed(metadata_filename, photoset)
 
         # Fetch list of photos
@@ -271,7 +266,7 @@ class FlickrMirrorer:
         photoset_dir = os.path.join(self.dest_dir, 'Not in any set')
 
         # TODO: Ideally we would inspect the existing set and make sure it's
-        # correct but that's a lot of work.  For now just recreate all the sets.
+        # correct, but that's a lot of work.  For now just recreate all the sets.
         ensure_dir_doesnt_exist(photoset_dir)
         ensure_dir_exists(photoset_dir)
 
@@ -298,6 +293,55 @@ class FlickrMirrorer:
                 os.symlink(photo_filename, symlink_filename)
 
             current_page += 1
+
+    def _mirror_collections(self):
+        """Create a directory for each collection, and create symlinks to the
+        sets."""
+        print('Creating local collections...')
+
+        # Fetch collections
+        rsp = self.flickr.collections_getTree(
+                format='json',
+        )
+        rsp = parse_json_response(rsp)
+        for collection in rsp['collections']['collection']:
+            self._mirror_collection(collection)
+
+    def _mirror_collection(self, collection):
+        print('Creating local collection %s' % collection['title'])
+
+        collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
+        collection_dir = os.path.join(self.dest_dir, collection_basename)
+
+        # TODO: Ideally we would inspect the existing directory and make sure it's
+        # correct, but that's a lot of work.  For now just recreate all the sets.
+        ensure_dir_doesnt_exist(collection_dir)
+        ensure_dir_exists(collection_dir)
+
+        # Write metadata
+        metadata_filename = os.path.join(collection_dir, 'metadata')
+        self._write_json_if_changed(metadata_filename, collection)
+
+        for set_ in collection['set']:
+            set_basename = self._get_set_dirname(set_['id'], set_['title'])
+            set_filename = os.path.join('..', set_basename)
+            symlink_filename = os.path.join(collection_dir, set_basename)
+            os.symlink(set_filename, symlink_filename)
+
+    def _get_set_dirname(self, id_, title):
+        safe_title = urllib.quote(title, " ',")
+        # TODO: We use the ID in the name to avoid conflicts when there are
+        #       two sets with the same name.  Is there a better way to
+        #       handle that?  Maybe by using the date of the oldest picture
+        #       instead?
+        return 'Set %s - %s' % (id_, safe_title)
+
+    def _get_collection_dirname(self, id_, title):
+        safe_title = urllib.quote(title, " ',")
+        # TODO: We use the ID in the name to avoid conflicts when there are
+        #       two collections with the same name (is that even possible?)
+        #       Is there a better way to handle that?
+        return 'Collection %s - %s' % (id_, safe_title)
 
     # Using this function isn't really necessary, but it's nice to avoid
     # unnecessarily changing the timestamps on metadata files.
