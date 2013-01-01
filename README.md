@@ -1,5 +1,5 @@
-ABOUT
-
+About
+=====
 A small command-line python script that creates a local backup of your
 Flickr data.  It mirrors images, titles, description, tags and sets.
 
@@ -7,7 +7,8 @@ Available at https://github.com/markdoliner/flickrmirrorer
 
 
 
-REQUIREMENTS
+Requirements
+============
 - python 2.?
 - python flickrapi library.
   Homepage: http://stuvel.eu/flickrapi
@@ -15,15 +16,18 @@ REQUIREMENTS
 
 
 
-USAGE
+Usage
+=====
 e.x. ./flickrmirrorer /mnt/backup/flickr/
 
 You may want to run this from cron.
 
 
 
-OUTPUT
+Output
+======
 Creates this directory hierarchy:
+  dest_dir/
   dest_dir/photostream/
   dest_dir/photostream/12345.jpg
   dest_dir/photostream/12345.jpg.metadata
