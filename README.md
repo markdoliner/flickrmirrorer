@@ -17,7 +17,9 @@ Requirements
 
 Usage
 =====
+<pre>
 e.x. ./flickrmirrorer /mnt/backup/flickr/
+</pre>
 
 Running via Cron
 ================
@@ -39,7 +41,9 @@ sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
 
 If running via cron, you'll probably want to redirect stdout to /dev/null.
 
+<pre>
 e.x. ./flickrmirrorer /mnt/backup/flickr/ 1>/dev/null
+</pre>
 
 
 Output
