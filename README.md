@@ -25,11 +25,12 @@ Running this script regularly via cron is a good way to keep your backup
 up to date.  If you run the cronjob as a user other than yourself you may
 may need to take additional steps to make sure the cron user is able to
 authenticate.  The steps are something like this:
-# Run the script as yourself the first time around.  It should pop open
+
+1. Run the script as yourself the first time around.  It should pop open
    your web browser and request permission.
-# After granting permission an authorization token is stored in
+2. After granting permission an authorization token is stored in
    ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
-# Copy this file to the home directory of the cron user:
+3. Copy this file to the home directory of the cron user:
 <pre>
 sudo mkdir -p /root/.flickr/9c5c431017e712bde232a2f142703bb2/
 sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
