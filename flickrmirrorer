@@ -105,7 +105,7 @@ class FlickrMirrorer:
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
         # Create flickrapi instance
-        self.flickr = flickrapi.FlickrAPI(API_KEY, API_SECRET)
+        self.flickr = flickrapi.FlickrAPI(API_KEY, secret=API_SECRET, format='json')
 
     def run(self):
         try:
@@ -153,7 +153,6 @@ class FlickrMirrorer:
                     extras='description,license,date_upload,date_taken,owner_name,icon_server,original_format,last_update,geo,tags,machine_tags,o_dims,views,media',
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
-                    format='json',
             )
             rsp = parse_json_response(rsp)
 
@@ -217,9 +216,7 @@ class FlickrMirrorer:
         print('Creating local sets...')
 
         # Fetch photosets
-        rsp = self.flickr.photosets_getList(
-                format='json',
-        )
+        rsp = self.flickr.photosets_getList()
         rsp = parse_json_response(rsp)
         for photoset in rsp['photosets']['photoset']:
             self._mirror_photoset(photoset)
@@ -248,7 +245,6 @@ class FlickrMirrorer:
                     extras='original_format',
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
-                    format='json',
             )
             rsp = parse_json_response(rsp)
 
@@ -279,7 +275,6 @@ class FlickrMirrorer:
                     extras='original_format',
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
-                    format='json',
             )
             rsp = parse_json_response(rsp)
             photos = rsp['photos']['photo']
@@ -301,9 +296,7 @@ class FlickrMirrorer:
         print('Creating local collections...')
 
         # Fetch collections
-        rsp = self.flickr.collections_getTree(
-                format='json',
-        )
+        rsp = self.flickr.collections_getTree()
         rsp = parse_json_response(rsp)
         for collection in rsp['collections']['collection']:
             self._mirror_collection(collection)
