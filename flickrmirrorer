@@ -203,8 +203,8 @@ class FlickrMirrorer:
                 or int(photo['lastupdate']) >= os.lstat(photo_filename).st_mtime:
             # We don't have this photo or the version on the server is newer
             print('Fetching %s' % url)
-            data = urllib.urlretrieve(url, tmp_filename)
-            os.rename(tmp_filename, photo_filename)
+            data = urllib.urlretrieve(url, self.tmp_filename)
+            os.rename(self.tmp_filename, photo_filename)
         else:
             print('Skipping %s because we already have it' % url)
 
