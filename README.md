@@ -24,8 +24,17 @@ e.x. ./flickrmirrorer /mnt/backup/flickr/
 Running via Cron
 ================
 Running this script regularly via cron is a good way to keep your backup
-up to date.  If you run the cronjob as a user other than yourself you may
-may need to take additional steps to make sure the cron user is able to
+up to date.  For example, create the file /etc/cron.d/flickr_backup
+containing the following:
+
+<pre>
+# Run Flickr photo mirroring script.
+# Sleep between 0 and 4 hours to distribute load on Flickr's API servers.
+0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /usr/local/bin/flickrmirrorer /mnt/backup/flickr/ 1>/dev/null
+</pre>
+
+If you run the cronjob as a user other than yourself you may
+need to take additional steps to make sure the cron user is able to
 authenticate.  The steps are something like this:
 
 1. Run the script as yourself the first time around.  It should pop open
@@ -37,12 +46,6 @@ authenticate.  The steps are something like this:
 sudo mkdir -p /root/.flickr/9c5c431017e712bde232a2f142703bb2/
 sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
         /root/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
-</pre>
-
-If running via cron, you'll probably want to redirect stdout to /dev/null.
-
-<pre>
-e.x. ./flickrmirrorer /mnt/backup/flickr/ 1>/dev/null
 </pre>
 
 
