@@ -37,10 +37,14 @@ sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
         /root/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
 </pre>
 
+If running via cron, you'll probably want to redirect stdout to /dev/null.
+
+e.x. ./flickrmirrorer /mnt/backup/flickr/ 1>/dev/null
+
 
 Output
 ======
-Creates this directory hierarchy:
+The script creates this directory hierarchy:
 <pre>
 dest_dir
 dest_dir/photostream/
