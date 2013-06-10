@@ -323,7 +323,7 @@ class FlickrMirrorer:
             os.symlink(set_filename, symlink_filename)
 
     def _get_set_dirname(self, id_, title):
-        safe_title = urllib.quote(title, " ',")
+        safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two sets with the same name.  Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
@@ -331,7 +331,7 @@ class FlickrMirrorer:
         return 'Set %s - %s' % (id_, safe_title)
 
     def _get_collection_dirname(self, id_, title):
-        safe_title = urllib.quote(title, " ',")
+        safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two collections with the same name (is that even possible?)
         #       Is there a better way to handle that?
