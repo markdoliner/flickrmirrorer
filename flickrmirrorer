@@ -298,8 +298,9 @@ class FlickrMirrorer:
         # Fetch collections
         rsp = self.flickr.collections_getTree()
         rsp = parse_json_response(rsp)
-        for collection in rsp['collections']['collection']:
-            self._mirror_collection(collection)
+        if rsp['collections']:
+            for collection in rsp['collections']['collection']:
+                self._mirror_collection(collection)
 
     def _mirror_collection(self, collection):
         print('Creating local collection %s' % collection['title'])
