@@ -30,7 +30,7 @@ containing the following:
 <pre>
 # Run Flickr photo mirroring script.
 # Sleep between 0 and 4 hours to distribute load on Flickr's API servers.
-0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /usr/local/bin/flickrmirrorer /mnt/backup/flickr/ 1>/dev/null
+0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /usr/local/bin/flickrmirrorer -q /mnt/backup/flickr/
 </pre>
 
 If you run the cronjob as a user other than yourself you may
