@@ -103,11 +103,17 @@ class FlickrMirrorer:
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity):
+    def __init__(self, dest_dir, verbosity, print_statistics):
         self.dest_dir = dest_dir
         self.verbosity = verbosity
+        self.print_statistics = print_statistics
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
+
+        # Statistics
+        self.deleted_photos = 0
+        self.modified_photos = 0
+        self.new_photos = 0
 
         # Create flickrapi instance
         self.flickr = flickrapi.FlickrAPI(API_KEY, secret=API_SECRET, format='json')
@@ -139,6 +145,11 @@ class FlickrMirrorer:
         self._mirror_photosets()
         self._create_not_in_photoset_dir()
         self._mirror_collections()
+
+        if self.print_statistics:
+            print "New photos: %d" % self.new_photos
+            print "Deleted photos: %d" % self.deleted_photos
+            print "Modified photos: %d" % self.modified_photos
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
@@ -174,6 +185,7 @@ class FlickrMirrorer:
         for unknown_file in unknown_files:
             unknown_filename = os.path.join(self.photostream_dir, unknown_file)
             self._progress('Deleting unknown file: %s' % unknown_filename)
+            self.deleted_photos += 1
             try:
                 os.remove(unknown_filename)
             except OSError, e:
@@ -204,6 +216,12 @@ class FlickrMirrorer:
         if not os.path.exists(photo_filename) \
                 or int(photo['lastupdate']) >= os.lstat(photo_filename).st_mtime:
             # We don't have this photo or the version on the server is newer
+
+            if not os.path.exists(photo_filename):
+                self.new_photos += 1
+            else:
+                self.modified_photos += 1
+
             self._progress('Fetching %s' % photo_basename)
             data = urllib.urlretrieve(url, self.tmp_filename)
             os.rename(self.tmp_filename, photo_filename)
@@ -415,9 +433,15 @@ if __name__ == '__main__':
             dest='verbosity', action="store_const", const=0,
             help='print nothing to stdout if the mirror succeeds')
 
+        parser.add_argument(
+            '-s', '--statistics', action="store_const",
+            default=False, const=True,
+            help='print transfer-statistics at the end')
+
         args = parser.parse_args()
 
-        mirrorer = FlickrMirrorer(args.destdir, args.verbosity)
+        mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
+                                  args.statistics)
         mirrorer.run()
     except KeyboardInterrupt:
         # User exited with CTRL+C
