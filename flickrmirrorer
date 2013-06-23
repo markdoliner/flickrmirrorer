@@ -38,6 +38,7 @@ import os
 import shutil
 import sys
 import urllib
+import argparse
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -101,8 +102,9 @@ class FlickrMirrorer:
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir):
+    def __init__(self, dest_dir, verbosity):
         self.dest_dir = dest_dir
+        self.verbosity = verbosity
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
@@ -141,7 +143,7 @@ class FlickrMirrorer:
         """Download all our pictures and metadata.
         If you have a lot of photos then this function will take a while."""
 
-        print('Fetching all photos from photostream')
+        self._verbose('Fetching all photos from photostream')
 
         ensure_dir_exists(self.photostream_dir)
 
@@ -170,7 +172,7 @@ class FlickrMirrorer:
         unknown_files = set(old_files) - set(new_files)
         for unknown_file in unknown_files:
             unknown_filename = os.path.join(self.photostream_dir, unknown_file)
-            print('Deleting unknown file: %s' % unknown_filename)
+            self._progress('Deleting unknown file: %s' % unknown_filename)
             try:
                 os.remove(unknown_filename)
             except OSError, e:
@@ -197,25 +199,31 @@ class FlickrMirrorer:
             sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % metadata_filename)
             sys.exit(1)
 
-        # Write metadata
-        self._write_json_if_changed(metadata_filename, photo)
-
         # Check if we should fetch the image
         if not os.path.exists(photo_filename) \
                 or int(photo['lastupdate']) >= os.lstat(photo_filename).st_mtime:
             # We don't have this photo or the version on the server is newer
-            print('Fetching %s' % url)
+            self._progress('Fetching %s' % photo_basename)
             data = urllib.urlretrieve(url, self.tmp_filename)
             os.rename(self.tmp_filename, photo_filename)
         else:
-            print('Skipping %s because we already have it' % url)
+            self._verbose('Skipping %s because we already have it' 
+                          % photo_basename)
+
+        # Write metadata
+        if self._write_json_if_changed(metadata_filename, photo):
+            self._progress( 'Updated metadata for %s' % photo_basename )
+        else:
+            self._verbose(
+                'Skipping metadata for %s because we already have it' %
+                photo_basename )
 
         return {photo_basename, metadata_basename}
 
     def _mirror_photosets(self):
         """Create a directory for each photoset, and create symlinks to the
         files in the photostream."""
-        print('Creating local sets...')
+        self._verbose('Creating local sets...')
 
         # Fetch photosets
         rsp = self.flickr.photosets_getList()
@@ -225,7 +233,7 @@ class FlickrMirrorer:
                 self._mirror_photoset(photoset)
 
     def _mirror_photoset(self, photoset):
-        print('Creating local set %s' % photoset['title']['_content'])
+        self._verbose('Creating local set %s' % photoset['title']['_content'])
 
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
         photoset_dir = os.path.join(self.dest_dir, photoset_basename)
@@ -261,7 +269,7 @@ class FlickrMirrorer:
         """Create a directory for photos that aren't in any photoset, and
         create symlinks to the files in the photostream."""
 
-        print('Creating local directory for photos not in a set')
+        self._verbose('Creating local directory for photos not in a set')
 
         photoset_dir = os.path.join(self.dest_dir, 'Not in any set')
 
@@ -296,16 +304,17 @@ class FlickrMirrorer:
     def _mirror_collections(self):
         """Create a directory for each collection, and create symlinks to the
         sets."""
-        print('Creating local collections...')
+        self._verbose('Creating local collections...')
 
         # Fetch collections
         rsp = self.flickr.collections_getTree()
         rsp = parse_json_response(rsp)
-        for collection in rsp['collections']['collection']:
-            self._mirror_collection(collection)
+        if rsp['collections']:
+            for collection in rsp['collections']['collection']:
+                self._mirror_collection(collection)
 
     def _mirror_collection(self, collection):
-        print('Creating local collection %s' % collection['title'])
+        self._verbose('Creating local collection %s' % collection['title'])
 
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
         collection_dir = os.path.join(self.dest_dir, collection_basename)
@@ -326,7 +335,7 @@ class FlickrMirrorer:
             os.symlink(set_filename, symlink_filename)
 
     def _get_set_dirname(self, id_, title):
-        safe_title = urllib.quote(title, " ',")
+        safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two sets with the same name.  Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
@@ -334,7 +343,7 @@ class FlickrMirrorer:
         return 'Set %s - %s' % (id_, safe_title)
 
     def _get_collection_dirname(self, id_, title):
-        safe_title = urllib.quote(title, " ',")
+        safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two collections with the same name (is that even possible?)
         #       Is there a better way to handle that?
@@ -344,12 +353,12 @@ class FlickrMirrorer:
     # unnecessarily changing the timestamps on metadata files.
     def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
-        different from what is currently there."""
+        different from what is currently there. Return true if file written"""
         try:
             orig_data = json.load(open(filename))
             if orig_data == data:
                 # Data has not changed--do nothing.
-                return
+                return False
         except IOError, e:
             if e.errno != errno.ENOENT:
                 sys.stderr.write('Error reading %s: %s\n' % (filename, e))
@@ -359,6 +368,15 @@ class FlickrMirrorer:
         json.dump(data, f)
         f.close()
         os.rename(self.tmp_filename, filename)
+        return True
+
+    def _verbose( self, msg ):
+        if self.verbosity >= 2:
+            print msg
+
+    def _progress( self, msg ):
+        if self.verbosity >= 1:
+            print msg
 
     def _cleanup(self):
         # Remove a temp file, if one exists
@@ -370,11 +388,27 @@ class FlickrMirrorer:
 
 if __name__ == '__main__':
     try:
-        if len(sys.argv) != 2:
-            sys.stderr.write('usage: %s <destination directory>\n' % sys.argv[0])
-            sys.exit(1)
-        dest_dir = sys.argv[1]
-        mirrorer = FlickrMirrorer(dest_dir)
+        parser = argparse.ArgumentParser(
+            description='Create a local mirror of your flickr data.')
+
+        parser.add_argument(
+            'destdir',
+            help='the path to where the mirror shall be stored')
+
+        parser.add_argument(
+            '-v', '--verbose',
+            dest='verbosity', action="store_const", const=2,
+            default=1,
+            help='print progress information to stdout')
+
+        parser.add_argument(
+            '-q', '--quiet', 
+            dest='verbosity', action="store_const", const=0,
+            help='print nothing to stdout if the mirror succeeds')
+
+        args = parser.parse_args()
+
+        mirrorer = FlickrMirrorer(args.destdir, args.verbosity)
         mirrorer.run()
     except KeyboardInterrupt:
         # User exited with CTRL+C
