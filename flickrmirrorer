@@ -32,13 +32,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import argparse
 import errno
 import math
 import os
 import shutil
 import sys
 import urllib
-import argparse
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -207,12 +207,12 @@ class FlickrMirrorer:
             data = urllib.urlretrieve(url, self.tmp_filename)
             os.rename(self.tmp_filename, photo_filename)
         else:
-            self._verbose('Skipping %s because we already have it' 
+            self._verbose('Skipping %s because we already have it'
                           % photo_basename)
 
         # Write metadata
         if self._write_json_if_changed(metadata_filename, photo):
-            self._progress( 'Updated metadata for %s' % photo_basename )
+            self._progress('Updated metadata for %s' % photo_basename)
         else:
             self._verbose(
                 'Skipping metadata for %s because we already have it' %
@@ -238,8 +238,10 @@ class FlickrMirrorer:
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
         photoset_dir = os.path.join(self.dest_dir, photoset_basename)
 
-        # TODO: Ideally we would inspect the existing set and make sure it's
-        # correct, but that's a lot of work.  For now just recreate all the sets.
+        # TODO: Ideally we would inspect the existing directory and
+        # make sure it's correct, but that's a lot of work. For now
+        # just recreate the set. Fixing this would also allow us to
+        # log _progress() messages when the set has changed.
         ensure_dir_doesnt_exist(photoset_dir)
         ensure_dir_exists(photoset_dir)
 
@@ -273,8 +275,10 @@ class FlickrMirrorer:
 
         photoset_dir = os.path.join(self.dest_dir, 'Not in any set')
 
-        # TODO: Ideally we would inspect the existing set and make sure it's
-        # correct, but that's a lot of work.  For now just recreate all the sets.
+        # TODO: Ideally we would inspect the existing directory and
+        # make sure it's correct, but that's a lot of work. For now
+        # just recreate the set. Fixing this would also allow us to
+        # log _progress() messages when the set has changed.
         ensure_dir_doesnt_exist(photoset_dir)
         ensure_dir_exists(photoset_dir)
 
@@ -319,8 +323,11 @@ class FlickrMirrorer:
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
         collection_dir = os.path.join(self.dest_dir, collection_basename)
 
-        # TODO: Ideally we would inspect the existing directory and make sure it's
-        # correct, but that's a lot of work.  For now just recreate all the sets.
+        # TODO: Ideally we would inspect the existing directory and
+        # make sure it's correct, but that's a lot of work. For now
+        # just recreate the collection. Fixing this would also allow
+        # us to log _progress() messages when the collection has
+        # changed.
         ensure_dir_doesnt_exist(collection_dir)
         ensure_dir_exists(collection_dir)
 
@@ -353,7 +360,8 @@ class FlickrMirrorer:
     # unnecessarily changing the timestamps on metadata files.
     def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
-        different from what is currently there. Return true if file written"""
+        different from what is currently there. Return true if the file was
+        written."""
         try:
             orig_data = json.load(open(filename))
             if orig_data == data:
@@ -370,11 +378,11 @@ class FlickrMirrorer:
         os.rename(self.tmp_filename, filename)
         return True
 
-    def _verbose( self, msg ):
+    def _verbose(self, msg):
         if self.verbosity >= 2:
             print msg
 
-    def _progress( self, msg ):
+    def _progress(self, msg):
         if self.verbosity >= 1:
             print msg
 
@@ -402,7 +410,7 @@ if __name__ == '__main__':
             help='print progress information to stdout')
 
         parser.add_argument(
-            '-q', '--quiet', 
+            '-q', '--quiet',
             dest='verbosity', action="store_const", const=0,
             help='print nothing to stdout if the mirror succeeds')
 
