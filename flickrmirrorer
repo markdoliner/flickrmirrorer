@@ -218,8 +218,9 @@ class FlickrMirrorer:
         # Fetch photosets
         rsp = self.flickr.photosets_getList()
         rsp = parse_json_response(rsp)
-        for photoset in rsp['photosets']['photoset']:
-            self._mirror_photoset(photoset)
+        if rsp['photosets']:
+            for photoset in rsp['photosets']['photoset']:
+                self._mirror_photoset(photoset)
 
     def _mirror_photoset(self, photoset):
         print('Creating local set %s' % photoset['title']['_content'])
