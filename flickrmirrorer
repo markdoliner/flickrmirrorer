@@ -75,6 +75,8 @@ def ensure_dir_exists(path):
             sys.exit(1)
 
 def ensure_dir_doesnt_exist(path):
+    """Remove the directory 'path' and all contents if it exists.
+    Calls sys.exit(1) if the directory or any contents could not be removed."""
     try:
         shutil.rmtree(path)
     except OSError, e:
