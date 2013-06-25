@@ -103,10 +103,11 @@ class FlickrMirrorer:
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity, print_statistics):
+    def __init__(self, dest_dir, verbosity, print_statistics, include_views):
         self.dest_dir = dest_dir
         self.verbosity = verbosity
         self.print_statistics = print_statistics
+        self.include_views = include_views
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
@@ -163,10 +164,16 @@ class FlickrMirrorer:
         new_files = set()
 
         current_page = 1
+
+        metadata_fields = 'description,license,date_upload,date_taken,owner_name,icon_server,original_format,last_update,geo,tags,machine_tags,o_dims,media'
+
+        if self.include_views:
+            metadata_fields += ',views'
+
         while True:
             rsp = self.flickr.people_getPhotos(
                     user_id='me',
-                    extras='description,license,date_upload,date_taken,owner_name,icon_server,original_format,last_update,geo,tags,machine_tags,o_dims,views,media',
+                    extras=metadata_fields,
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
             )
@@ -438,10 +445,15 @@ if __name__ == '__main__':
             default=False, const=True,
             help='print transfer-statistics at the end')
 
+        parser.add_argument(
+            '--ignore-views', action="store_const",
+            dest='include_views', default=True, const=False,
+            help="do not include views-counter in metadata" )
+
         args = parser.parse_args()
 
         mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                                  args.statistics)
+                                  args.statistics, args.include_views)
         mirrorer.run()
     except KeyboardInterrupt:
         # User exited with CTRL+C
