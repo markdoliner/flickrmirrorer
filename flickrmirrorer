@@ -302,13 +302,16 @@ class FlickrMirrorer:
 
             ensure_dir_doesnt_exist(photoset_dir)
             ensure_dir_exists(photoset_dir)
-            self._write_json_if_changed(metadata_filename, photoset)
 
-            for id in photoids:
-                photo_basename = '%s.%s' % (id, originalformat[id])
+            digits = len(str(len(photoids)))
+
+            for i,id in enumerate(photoids):
+                photo_basename = '%s_%s.%s' % (str(i+1).zfill(digits),id, originalformat[id])
                 photo_filename = os.path.join('..', 'photostream', photo_basename)
                 symlink_filename = os.path.join(photoset_dir, photo_basename)
                 os.symlink(photo_filename, symlink_filename)
+
+            self._write_json_if_changed(metadata_filename, photoset)
 
         else:
             self._verbose('Set %s is up-to-date' % photoset['title']['_content'])
