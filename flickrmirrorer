@@ -115,6 +115,7 @@ class FlickrMirrorer:
         self.deleted_photos = 0
         self.modified_photos = 0
         self.new_photos = 0
+        self.modified_sets = 0
 
         # Create flickrapi instance
         self.flickr = flickrapi.FlickrAPI(API_KEY, secret=API_SECRET, format='json')
@@ -151,6 +152,7 @@ class FlickrMirrorer:
             print "New photos: %d" % self.new_photos
             print "Deleted photos: %d" % self.deleted_photos
             print "Modified photos: %d" % self.modified_photos
+            print "Modified sets: %d" % self.modified_sets
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
@@ -259,23 +261,13 @@ class FlickrMirrorer:
                 self._mirror_photoset(photoset)
 
     def _mirror_photoset(self, photoset):
-        self._verbose('Creating local set %s' % photoset['title']['_content'])
-
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
         photoset_dir = os.path.join(self.dest_dir, photoset_basename)
 
-        # TODO: Ideally we would inspect the existing directory and
-        # make sure it's correct, but that's a lot of work. For now
-        # just recreate the set. Fixing this would also allow us to
-        # log _progress() messages when the set has changed.
-        ensure_dir_doesnt_exist(photoset_dir)
-        ensure_dir_exists(photoset_dir)
-
-        # Write metadata
-        metadata_filename = os.path.join(photoset_dir, 'metadata')
-        self._write_json_if_changed(metadata_filename, photoset)
-
         # Fetch list of photos
+        photoids = []
+        originalformat = {}
+
         num_pages = int(math.ceil(float(photoset['photos']) / NUM_PHOTOS_PER_BATCH))
         for current_page in range(1, num_pages + 1):
             # Fetch photos in this photoset
@@ -288,10 +280,39 @@ class FlickrMirrorer:
             rsp = parse_json_response(rsp)
 
             for photo in rsp['photoset']['photo']:
-                photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+                photoids.append(photo['id'])
+                originalformat[photo['id']] = photo['originalformat']
+
+        # Include list of pictures in metadata
+        photoset['photos'] = photoids
+
+        if (not self.include_views) and 'count_views' in photoset:
+            del photoset['count_views']
+
+        ensure_dir_exists(photoset_dir)
+
+        # Write metadata
+        metadata_filename = os.path.join(photoset_dir, 'metadata')
+
+        if self._write_json_if_changed(metadata_filename, photoset):
+            # Metadata changed, might be due to updated list of photos.
+            # Recreate all symlinks
+            self._progress('Updating set %s' % photoset['title']['_content'])
+            self.modified_sets += 1
+
+            ensure_dir_doesnt_exist(photoset_dir)
+            ensure_dir_exists(photoset_dir)
+            self._write_json_if_changed(metadata_filename, photoset)
+
+            for id in photoids:
+                photo_basename = '%s.%s' % (id, originalformat[id])
                 photo_filename = os.path.join('..', 'photostream', photo_basename)
                 symlink_filename = os.path.join(photoset_dir, photo_basename)
                 os.symlink(photo_filename, symlink_filename)
+
+        else:
+            self._verbose('Set %s is up-to-date' % photoset['title']['_content'])
+
 
     def _create_not_in_photoset_dir(self):
         """Create a directory for photos that aren't in any photoset, and
