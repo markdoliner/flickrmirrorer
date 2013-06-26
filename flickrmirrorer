@@ -289,28 +289,26 @@ class FlickrMirrorer:
         if (not self.include_views) and 'count_views' in photoset:
             del photoset['count_views']
 
-        ensure_dir_exists(photoset_dir)
-
-        # Write metadata
         metadata_filename = os.path.join(photoset_dir, 'metadata')
-
-        if self._write_json_if_changed(metadata_filename, photoset):
+        if not os.path.exists(photoset_dir) or self._is_file_different(metadata_filename, photoset):
             # Metadata changed, might be due to updated list of photos.
-            # Recreate all symlinks
             self._progress('Updating set %s' % photoset['title']['_content'])
             self.modified_sets += 1
 
+            # Delete and recreate the set
             ensure_dir_doesnt_exist(photoset_dir)
             ensure_dir_exists(photoset_dir)
 
+            # Create symlinks for each photo, prefixed with a number so that
+            # the local alphanumeric sort order matches the order on Flickr.
             digits = len(str(len(photoids)))
-
             for i,id in enumerate(photoids):
-                photo_basename = '%s_%s.%s' % (str(i+1).zfill(digits),id, originalformat[id])
+                photo_basename = '%s_%s.%s' % (str(i+1).zfill(digits), id, originalformat[id])
                 photo_filename = os.path.join('..', 'photostream', photo_basename)
                 symlink_filename = os.path.join(photoset_dir, photo_basename)
                 os.symlink(photo_filename, symlink_filename)
 
+            # Write metadata
             self._write_json_if_changed(metadata_filename, photoset)
 
         else:
@@ -406,21 +404,27 @@ class FlickrMirrorer:
         #       Is there a better way to handle that?
         return 'Collection %s - %s' % (id_, safe_title)
 
-    # Using this function isn't really necessary, but it's nice to avoid
-    # unnecessarily changing the timestamps on metadata files.
-    def _write_json_if_changed(self, filename, data):
-        """Write the given data to the specified filename, but only if it's
-        different from what is currently there. Return true if the file was
-        written."""
+    def _is_file_different(self, filename, data):
+        """Return True if the contents of the file 'filename' differ
+        from 'data'. Otherwise return False."""
         try:
             orig_data = json.load(open(filename))
-            if orig_data == data:
-                # Data has not changed--do nothing.
-                return False
+            return orig_data != data
         except IOError, e:
             if e.errno != errno.ENOENT:
                 sys.stderr.write('Error reading %s: %s\n' % (filename, e))
                 sys.exit(1)
+
+    def _write_json_if_changed(self, filename, data):
+        """Write the given data to the specified filename, but only if it's
+        different from what is currently there. Return true if the file was
+        written.
+
+        We use this function mostly to avoid changing the timestamps on
+        metadata files."""
+        if not self._is_file_different(filename, data):
+            # Data has not changed--do nothing.
+            return False
 
         f = open(self.tmp_filename, 'w')
         json.dump(data, f)
