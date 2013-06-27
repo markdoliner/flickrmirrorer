@@ -262,7 +262,7 @@ class FlickrMirrorer:
 
     def _mirror_photoset(self, photoset):
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
-        photoset_dir = os.path.join(self.dest_dir, photoset_basename)
+        photoset_dir = os.path.join(self.dest_dir, "Sets", photoset_basename)
 
         # Fetch list of photos
         photoids = []
@@ -304,7 +304,7 @@ class FlickrMirrorer:
             digits = len(str(len(photoids)))
             for i,id in enumerate(photoids):
                 photo_basename = '%s.%s' % (id, originalformat[id])
-                photo_filename = os.path.join('..', 'photostream', photo_basename)
+                photo_filename = os.path.join('..', '..', 'photostream', photo_basename)
                 symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), id, originalformat[id])
                 symlink_filename = os.path.join(photoset_dir, symlink_basename)
                 os.symlink(photo_filename, symlink_filename)
@@ -386,7 +386,7 @@ class FlickrMirrorer:
 
         for set_ in collection['set']:
             set_basename = self._get_set_dirname(set_['id'], set_['title'])
-            set_filename = os.path.join('..', set_basename)
+            set_filename = os.path.join('..', 'Sets', set_basename)
             symlink_filename = os.path.join(collection_dir, set_basename)
             os.symlink(set_filename, symlink_filename)
 
@@ -396,7 +396,7 @@ class FlickrMirrorer:
         #       two sets with the same name.  Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
         #       instead?
-        return 'Set %s - %s' % (id_, safe_title)
+        return '%s - %s' % (safe_title, id_)
 
     def _get_collection_dirname(self, id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")
