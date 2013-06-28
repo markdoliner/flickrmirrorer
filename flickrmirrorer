@@ -370,7 +370,7 @@ class FlickrMirrorer:
         self._verbose('Creating local collection %s' % collection['title'])
 
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
-        collection_dir = os.path.join(self.dest_dir, collection_basename)
+        collection_dir = os.path.join(self.dest_dir, "Collections", collection_basename)
 
         # TODO: Ideally we would inspect the existing directory and
         # make sure it's correct, but that's a lot of work. For now
@@ -386,7 +386,7 @@ class FlickrMirrorer:
 
         for set_ in collection['set']:
             set_basename = self._get_set_dirname(set_['id'], set_['title'])
-            set_filename = os.path.join('..', 'Sets', set_basename)
+            set_filename = os.path.join('..', '..', 'Sets', set_basename)
             symlink_filename = os.path.join(collection_dir, set_basename)
             os.symlink(set_filename, symlink_filename)
 
@@ -403,7 +403,7 @@ class FlickrMirrorer:
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two collections with the same name (is that even possible?)
         #       Is there a better way to handle that?
-        return 'Collection %s - %s' % (id_, safe_title)
+        return '%s - %s' % (safe_title, id_)
 
     def _is_file_different(self, filename, data):
         """Return True if the contents of the file 'filename' differ
