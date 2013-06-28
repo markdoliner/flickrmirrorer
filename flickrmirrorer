@@ -415,6 +415,7 @@ class FlickrMirrorer:
             if e.errno != errno.ENOENT:
                 sys.stderr.write('Error reading %s: %s\n' % (filename, e))
                 sys.exit(1)
+            return True
 
     def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
