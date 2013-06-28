@@ -116,6 +116,7 @@ class FlickrMirrorer:
         self.modified_photos = 0
         self.new_photos = 0
         self.modified_sets = 0
+        self.modified_collections = 0
 
         # Create flickrapi instance
         self.flickr = flickrapi.FlickrAPI(API_KEY, secret=API_SECRET, format='json')
@@ -153,6 +154,7 @@ class FlickrMirrorer:
             print "Deleted photos: %d" % self.deleted_photos
             print "Modified photos: %d" % self.modified_photos
             print "Modified sets: %d" % self.modified_sets
+            print "Modified collections: %d" % self.modified_collections
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
@@ -367,28 +369,27 @@ class FlickrMirrorer:
                 self._mirror_collection(collection)
 
     def _mirror_collection(self, collection):
-        self._verbose('Creating local collection %s' % collection['title'])
-
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
         collection_dir = os.path.join(self.dest_dir, "Collections", collection_basename)
 
-        # TODO: Ideally we would inspect the existing directory and
-        # make sure it's correct, but that's a lot of work. For now
-        # just recreate the collection. Fixing this would also allow
-        # us to log _progress() messages when the collection has
-        # changed.
-        ensure_dir_doesnt_exist(collection_dir)
-        ensure_dir_exists(collection_dir)
-
-        # Write metadata
         metadata_filename = os.path.join(collection_dir, 'metadata')
-        self._write_json_if_changed(metadata_filename, collection)
 
-        for set_ in collection['set']:
-            set_basename = self._get_set_dirname(set_['id'], set_['title'])
-            set_filename = os.path.join('..', '..', 'Sets', set_basename)
-            symlink_filename = os.path.join(collection_dir, set_basename)
-            os.symlink(set_filename, symlink_filename)
+        if not os.path.exists(collection_dir) or self._is_file_different(metadata_filename, collection):
+            # Metadata changed, might be due to updated list of sets.
+            self._progress('Updating collection %s' % collection['title'])
+            self.modified_collections += 1
+
+            # Delete and recreate the collection
+            ensure_dir_doesnt_exist(collection_dir)
+            ensure_dir_exists(collection_dir)
+
+            for set_ in collection['set']:
+                set_basename = self._get_set_dirname(set_['id'], set_['title'])
+                set_filename = os.path.join('..', '..', 'Sets', set_basename)
+                symlink_filename = os.path.join(collection_dir, set_basename)
+                os.symlink(set_filename, symlink_filename)
+
+            self._write_json_if_changed(metadata_filename, collection)
 
     def _get_set_dirname(self, id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")
