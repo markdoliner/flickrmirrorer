@@ -257,12 +257,26 @@ class FlickrMirrorer:
         files in the photostream."""
         self._verbose('Creating local sets...')
 
+        old_files = os.listdir(self.sets_dir)
+
+        photoset_dirs = set()
+
         # Fetch photosets
         rsp = self.flickr.photosets_getList()
         rsp = parse_json_response(rsp)
         if rsp['photosets']:
             for photoset in rsp['photosets']['photoset']:
-                self._mirror_photoset(photoset)
+                photoset_dirs |= self._mirror_photoset(photoset)
+
+        unknown_files = set(old_files) - set(photoset_dirs)
+        for unknown_file in unknown_files:
+            unknown_filename = os.path.join(self.sets_dir, unknown_file)
+            self._progress('Deleting unknown set: %s' % unknown_file)
+            try:
+                shutil.rmtree(unknown_filename)
+            except OSError, e:
+                sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
+                sys.exit(1)
 
     def _mirror_photoset(self, photoset):
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
@@ -320,6 +334,7 @@ class FlickrMirrorer:
         else:
             self._verbose('Set %s is up-to-date' % photoset['title']['_content'])
 
+        return {photoset_basename}
 
     def _create_not_in_photoset_dir(self):
         """Create a directory for photos that aren't in any photoset, and
