@@ -109,6 +109,8 @@ class FlickrMirrorer:
         self.print_statistics = print_statistics
         self.include_views = include_views
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
+        self.sets_dir = os.path.join(self.dest_dir, 'Sets')
+        self.collections_dir = os.path.join(self.dest_dir, 'Collections')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
         # Statistics
@@ -264,7 +266,7 @@ class FlickrMirrorer:
 
     def _mirror_photoset(self, photoset):
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
-        photoset_dir = os.path.join(self.dest_dir, "Sets", photoset_basename)
+        photoset_dir = os.path.join(self.sets_dir, photoset_basename)
 
         # Fetch list of photos
         photoids = []
@@ -306,10 +308,11 @@ class FlickrMirrorer:
             digits = len(str(len(photoids)))
             for i,id in enumerate(photoids):
                 photo_basename = '%s.%s' % (id, originalformat[id])
-                photo_filename = os.path.join('..', '..', 'photostream', photo_basename)
+                photo_fullname = os.path.join(self.photostream_dir, photo_basename)
+                photo_relname = os.path.relpath(photo_fullname, photoset_dir)
                 symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), id, originalformat[id])
                 symlink_filename = os.path.join(photoset_dir, symlink_basename)
-                os.symlink(photo_filename, symlink_filename)
+                os.symlink(photo_relname, symlink_filename)
 
             # Write metadata
             self._write_json_if_changed(metadata_filename, photoset)
@@ -350,9 +353,10 @@ class FlickrMirrorer:
 
             for photo in photos:
                 photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
-                photo_filename = os.path.join('..', 'photostream', photo_basename)
+                photo_fullname = os.path.join(self.photostream_dir, photo_basename)
+                photo_relname = os.path.relpath(photo_fullname, photoset_dir)
                 symlink_filename = os.path.join(photoset_dir, photo_basename)
-                os.symlink(photo_filename, symlink_filename)
+                os.symlink(photo_relname, symlink_filename)
 
             current_page += 1
 
@@ -370,7 +374,7 @@ class FlickrMirrorer:
 
     def _mirror_collection(self, collection):
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
-        collection_dir = os.path.join(self.dest_dir, "Collections", collection_basename)
+        collection_dir = os.path.join(self.collections_dir, collection_basename)
 
         metadata_filename = os.path.join(collection_dir, 'metadata')
 
@@ -385,9 +389,10 @@ class FlickrMirrorer:
 
             for set_ in collection['set']:
                 set_basename = self._get_set_dirname(set_['id'], set_['title'])
-                set_filename = os.path.join('..', '..', 'Sets', set_basename)
+                set_fullname = os.path.join(self.sets_dir, set_basename)
+                set_relname = os.path.relpath(set_fullname, collection_dir)
                 symlink_filename = os.path.join(collection_dir, set_basename)
-                os.symlink(set_filename, symlink_filename)
+                os.symlink(set_relname, symlink_filename)
 
             self._write_json_if_changed(metadata_filename, collection)
 
