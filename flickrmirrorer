@@ -361,12 +361,17 @@ class FlickrMirrorer:
         sets."""
         self._verbose('Creating local collections...')
 
+        collection_dirs = set()
+
         # Fetch collections
         rsp = self.flickr.collections_getTree()
         rsp = parse_json_response(rsp)
         if rsp['collections']:
             for collection in rsp['collections']['collection']:
-                self._mirror_collection(collection)
+                collection_dirs = self._mirror_collection(collection)
+
+        self._delete_unknown_files(self.collections_dir, collection_dirs, "collection")
+
 
     def _mirror_collection(self, collection):
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
@@ -391,6 +396,8 @@ class FlickrMirrorer:
                 os.symlink(set_relname, symlink_filename)
 
             self._write_json_if_changed(metadata_filename, collection)
+
+        return {collection_basename}
 
     def _get_set_dirname(self, id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")

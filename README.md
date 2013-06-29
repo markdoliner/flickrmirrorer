@@ -82,4 +82,4 @@ TODO
 * Mirror comments
 * Store order of photos in photostream
 * Store order of sets in collections
-* Remove local collections that have been removed from Flickr
+
