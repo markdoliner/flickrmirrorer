@@ -166,7 +166,6 @@ class FlickrMirrorer:
 
         ensure_dir_exists(self.photostream_dir)
 
-        old_files = os.listdir(self.photostream_dir)
         new_files = set()
 
         current_page = 1
@@ -194,16 +193,8 @@ class FlickrMirrorer:
 
             current_page += 1
 
-        unknown_files = set(old_files) - set(new_files)
-        for unknown_file in unknown_files:
-            unknown_filename = os.path.join(self.photostream_dir, unknown_file)
-            self._progress('Deleting unknown file: %s' % unknown_filename)
-            self.deleted_photos += 1
-            try:
-                os.remove(unknown_filename)
-            except OSError, e:
-                sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
-                sys.exit(1)
+            # Each photo has an accompanying metadata file
+            self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
 
     def _download_photo(self, photo):
         """Fetch and save a photo and the metadata for the photo.
@@ -257,8 +248,6 @@ class FlickrMirrorer:
         files in the photostream."""
         self._verbose('Creating local sets...')
 
-        old_files = os.listdir(self.sets_dir)
-
         photoset_dirs = set()
 
         # Fetch photosets
@@ -268,15 +257,7 @@ class FlickrMirrorer:
             for photoset in rsp['photosets']['photoset']:
                 photoset_dirs |= self._mirror_photoset(photoset)
 
-        unknown_files = set(old_files) - set(photoset_dirs)
-        for unknown_file in unknown_files:
-            unknown_filename = os.path.join(self.sets_dir, unknown_file)
-            self._progress('Deleting unknown set: %s' % unknown_file)
-            try:
-                shutil.rmtree(unknown_filename)
-            except OSError, e:
-                sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
-                sys.exit(1)
+        self._delete_unknown_files(self.sets_dir, photoset_dirs, "set")
 
     def _mirror_photoset(self, photoset):
         photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
@@ -454,6 +435,30 @@ class FlickrMirrorer:
         f.close()
         os.rename(self.tmp_filename, filename)
         return True
+
+    def _delete_unknown_files( self, rootdir, known, knowntype):
+        """Delete all files and directories in rootdir except the
+        known files.  knowntype if only used for the log message.
+        Returns the number of deleted entries."""
+        delete_count = 0
+        curr_entries = os.listdir(rootdir)
+
+        unknown_entries = set(curr_entries) - set(known)
+        for unknown_entry in unknown_entries:
+            fullname = os.path.join(rootdir, unknown_entry)
+            self._progress('Deleting unknown %s: %s' % (knowntype, unknown_entry))
+            delete_count += 1
+
+            try:
+                if os.path.isdir(fullname):
+                    shutil.rmtree(fullname)
+                else:
+                    os.remove(fullname)
+            except OSError, e:
+                sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
+                sys.exit(1)
+
+        return delete_count
 
     def _verbose(self, msg):
         if self.verbosity >= 2:
