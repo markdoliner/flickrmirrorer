@@ -64,9 +64,12 @@ dest_dir/photostream/12347.jpg.metadata
 dest_dir/Not in any set/
 dest_dir/Not in any set/12345.jpg -> ../photostream/12345.jpg
 dest_dir/Sets/
-dest_dir/Sets/Pretty Waterfalls - 6789/
-dest_dir/Sets/Pretty Waterfalls - 6789/1_12346.jpg -> ../../photostream/12346.jpg
-dest_dir/Sets/Pretty Waterfalls - 6789/2_12347.jpg -> ../../photostream/12347.jpg
+dest_dir/Sets/Waterfalls - 6789/
+dest_dir/Sets/Waterfalls - 6789/1_12346.jpg -> ../../photostream/12346.jpg
+dest_dir/Sets/Waterfalls - 6789/2_12347.jpg -> ../../photostream/12347.jpg
+dest_dir/Collections/
+dest_dir/Collections/Nature - 2634-98761234/Waterfalls - 6789 -> ../../Sets/Waterfalls - 6789
+dest_dir/Collections/Nature - 2634-98761234/Mountains - 6790  -> ../../Sets/Mountains - 6790
 </pre>
 
 The metadata files contain JSON data dumped from the Flickr API.
