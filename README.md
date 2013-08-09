@@ -76,8 +76,13 @@ The metadata files contain JSON data dumped from the Flickr API.
 It's not the prettiest thing in the world... but it does contain
 all the necessary data in case you want to recover from it.
 
-Routine status is printed to stdout.
+The set and collection directories contain symlinks to the files in
+the photostream. The symlink names are numbered so as to preserve
+the order of files in your sets and collections.
+
+Routine status is printed to stdout by default.
 Errors are printed to stderr.
+To see more options run with the --help flag.
 
 
 TODO
@@ -85,4 +90,3 @@ TODO
 * Mirror comments
 * Store order of photos in photostream
 * Store order of sets in collections
-
