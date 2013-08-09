@@ -193,9 +193,9 @@ class FlickrMirrorer:
 
             current_page += 1
 
-            # Divide by 2 because we want to ignore the photo metadata files
-            # for the purposes of our statistics.
-            self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
+        # Divide by 2 because we want to ignore the photo metadata files
+        # for the purposes of our statistics.
+        self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
 
     def _download_photo(self, photo):
         """Fetch and save a photo and the metadata for the photo.
