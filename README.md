@@ -77,8 +77,8 @@ It's not the prettiest thing in the world... but it does contain
 all the necessary data in case you want to recover from it.
 
 The set and collection directories contain symlinks to the files in
-the photostream. The symlink names are numbered so as to preserve
-the order of files in your sets and collections.
+the photostream. The symlink names in sets are numbered so as to
+preserve the order.
 
 Routine status is printed to stdout by default.
 Errors are printed to stderr.
