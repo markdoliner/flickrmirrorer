@@ -193,7 +193,8 @@ class FlickrMirrorer:
 
             current_page += 1
 
-            # Each photo has an accompanying metadata file
+            # Divide by 2 because we want to ignore the photo metadata files
+            # for the purposes of our statistics.
             self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
 
     def _download_photo(self, photo):
@@ -289,6 +290,7 @@ class FlickrMirrorer:
             del photoset['count_views']
 
         metadata_filename = os.path.join(photoset_dir, 'metadata')
+
         if not os.path.exists(photoset_dir) or self._is_file_different(metadata_filename, photoset):
             # Metadata changed, might be due to updated list of photos.
             self._progress('Updating set %s' % photoset['title']['_content'])
@@ -388,6 +390,7 @@ class FlickrMirrorer:
             ensure_dir_doesnt_exist(collection_dir)
             ensure_dir_exists(collection_dir)
 
+            # Create symlinks for each set
             for set_ in collection['set']:
                 set_basename = self._get_set_dirname(set_['id'], set_['title'])
                 set_fullname = os.path.join(self.sets_dir, set_basename)
@@ -395,6 +398,7 @@ class FlickrMirrorer:
                 symlink_filename = os.path.join(collection_dir, set_basename)
                 os.symlink(set_relname, symlink_filename)
 
+            # Write metadata
             self._write_json_if_changed(metadata_filename, collection)
 
         return {collection_basename}
@@ -443,7 +447,7 @@ class FlickrMirrorer:
         os.rename(self.tmp_filename, filename)
         return True
 
-    def _delete_unknown_files( self, rootdir, known, knowntype):
+    def _delete_unknown_files(self, rootdir, known, knowntype):
         """Delete all files and directories in rootdir except the
         known files.  knowntype if only used for the log message.
         Returns the number of deleted entries."""
