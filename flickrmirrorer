@@ -370,10 +370,9 @@ class FlickrMirrorer:
         rsp = parse_json_response(rsp)
         if rsp['collections']:
             for collection in rsp['collections']['collection']:
-                collection_dirs = self._mirror_collection(collection)
+                collection_dirs |= self._mirror_collection(collection)
 
         self._delete_unknown_files(self.collections_dir, collection_dirs, "collection")
-
 
     def _mirror_collection(self, collection):
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
