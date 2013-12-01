@@ -17,6 +17,10 @@ Requirements
 
 Usage
 =====
+The script was developed on Linux. It should work on other Unixy operating
+systems such as OS X, hopefully without changes. It could probably be made
+to work on Microsoft Windows with minor changes.
+
 <pre>
 e.x. ./flickrmirrorer /mnt/backup/flickr/
 </pre>
