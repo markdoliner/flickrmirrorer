@@ -1,5 +1,5 @@
-About
-=====
+Overview
+========
 A small command-line python script that creates a local backup of your
 Flickr data.  It mirrors images, titles, description, tags, sets and
 collections.
