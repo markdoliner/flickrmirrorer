@@ -70,10 +70,10 @@ def ensure_dir_exists(path):
     Calls sys.exit(1) if any directory could not be created."""
     try:
         os.makedirs(path)
-    except OSError, e:
-        if e.errno != errno.EEXIST:
+    except OSError, ex:
+        if ex.errno != errno.EEXIST:
             sys.stderr.write('Error creating destination directory %s: %s\n'
-                    % (path, e.strerror))
+                    % (path, ex.strerror))
             sys.exit(1)
 
 def ensure_dir_doesnt_exist(path):
@@ -81,9 +81,9 @@ def ensure_dir_doesnt_exist(path):
     Calls sys.exit(1) if the directory or any contents could not be removed."""
     try:
         shutil.rmtree(path)
-    except OSError, e:
-        if e.errno != errno.ENOENT:
-            sys.stderr.write('Error removing %s: %s\n' % (path, e.strerror))
+    except OSError, ex:
+        if ex.errno != errno.ENOENT:
+            sys.stderr.write('Error removing %s: %s\n' % (path, ex.strerror))
             sys.exit(1)
 
 # flickrapi should really do this for us :-(
@@ -136,8 +136,8 @@ class FlickrMirrorer:
             raw_input(PLEASE_GRANT_AUTHORIZATION_MSG)
         try:
             self.flickr.get_token_part_two((token, frob))
-        except flickrapi.exceptions.FlickrError, e:
-            sys.stderr.write('Error authenticating: %s\n' % e.message)
+        except flickrapi.exceptions.FlickrError, ex:
+            sys.stderr.write('Error authenticating: %s\n' % ex.message)
             sys.exit(1)
 
         # Create destination directory
@@ -303,11 +303,11 @@ class FlickrMirrorer:
             # Create symlinks for each photo, prefixed with a number so that
             # the local alphanumeric sort order matches the order on Flickr.
             digits = len(str(len(photoids)))
-            for i,id in enumerate(photoids):
-                photo_basename = '%s.%s' % (id, originalformat[id])
+            for i, photoid in enumerate(photoids):
+                photo_basename = '%s.%s' % (photoid, originalformat[photoid])
                 photo_fullname = os.path.join(self.photostream_dir, photo_basename)
                 photo_relname = os.path.relpath(photo_fullname, photoset_dir)
-                symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), id, originalformat[id])
+                symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), photoid, originalformat[photoid])
                 symlink_filename = os.path.join(photoset_dir, symlink_basename)
                 os.symlink(photo_relname, symlink_filename)
 
@@ -423,9 +423,9 @@ class FlickrMirrorer:
         try:
             orig_data = json.load(open(filename))
             return orig_data != data
-        except IOError, e:
-            if e.errno != errno.ENOENT:
-                sys.stderr.write('Error reading %s: %s\n' % (filename, e))
+        except IOError, ex:
+            if ex.errno != errno.ENOENT:
+                sys.stderr.write('Error reading %s: %s\n' % (filename, ex))
                 sys.exit(1)
             return True
 
@@ -464,8 +464,8 @@ class FlickrMirrorer:
                     shutil.rmtree(fullname)
                 else:
                     os.remove(fullname)
-            except OSError, e:
-                sys.stderr.write('Error deleting %s: %s\n' % (fullname, e.strerror))
+            except OSError, ex:
+                sys.stderr.write('Error deleting %s: %s\n' % (fullname, ex.strerror))
                 sys.exit(1)
 
         return delete_count
@@ -482,9 +482,9 @@ class FlickrMirrorer:
         # Remove a temp file, if one exists
         try:
             os.remove(self.tmp_filename)
-        except OSError, e:
-            if e.errno != errno.ENOENT:
-                sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, e.strerror))
+        except OSError, ex:
+            if ex.errno != errno.ENOENT:
+                sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, ex.strerror))
 
 if __name__ == '__main__':
     try:
