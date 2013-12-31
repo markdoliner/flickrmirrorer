@@ -465,7 +465,7 @@ class FlickrMirrorer:
                 else:
                     os.remove(fullname)
             except OSError, e:
-                sys.stderr.write('Error deleting %s: %s\n' % (unknown_filename, e.strerror))
+                sys.stderr.write('Error deleting %s: %s\n' % (fullname, e.strerror))
                 sys.exit(1)
 
         return delete_count
