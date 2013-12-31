@@ -486,7 +486,8 @@ class FlickrMirrorer:
             if ex.errno != errno.ENOENT:
                 sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, ex.strerror))
 
-if __name__ == '__main__':
+
+def main():
     try:
         parser = argparse.ArgumentParser(
             description='Create a local mirror of your flickr data.')
@@ -525,3 +526,7 @@ if __name__ == '__main__':
         # User exited with CTRL+C
         # Print a newline to leave the console in a prettier state
         print
+
+
+if __name__ == '__main__':
+    main()
