@@ -228,7 +228,7 @@ class FlickrMirrorer:
                 self.modified_photos += 1
 
             self._progress('Fetching %s' % photo_basename)
-            data = urllib.urlretrieve(url, self.tmp_filename)
+            urllib.urlretrieve(url, self.tmp_filename)
             os.rename(self.tmp_filename, photo_filename)
         else:
             self._verbose('Skipping %s because we already have it'
