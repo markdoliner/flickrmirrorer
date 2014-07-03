@@ -193,6 +193,11 @@ class FlickrMirrorer:
 
             current_page += 1
 
+        # Error out if we didn't fetch any photos
+        if not new_files:
+            sys.stderr.write('Error: The Flickr API returned an empty list of photos. Bailing out without deleting any local copies in case this is an anomaly.\n')
+            sys.exit(1)
+
         # Divide by 2 because we want to ignore the photo metadata files
         # for the purposes of our statistics.
         self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
