@@ -206,7 +206,7 @@ class FlickrMirrorer:
         """Fetch and save a photo and the metadata for the photo.
 
         Returns a set containing the filenames for the data."""
-        url = 'http://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
+        url = 'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
         photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
         photo_filename = os.path.join(self.photostream_dir, photo_basename)
         metadata_basename = '%s.metadata' % photo_basename
