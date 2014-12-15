@@ -296,6 +296,9 @@ class FlickrMirrorer:
 
         metadata_filename = os.path.join(photoset_dir, 'metadata')
 
+        # TODO: Should ensure local set directory accurately reflects the
+        # remote set data even if the metadata hasn't changed (important in
+        # case the local set data has been tampered with).
         if not os.path.exists(photoset_dir) or self._is_file_different(metadata_filename, photoset):
             # Metadata changed, might be due to updated list of photos.
             self._progress('Updating set %s' % photoset['title']['_content'])
