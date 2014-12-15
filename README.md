@@ -1,7 +1,7 @@
 Overview
 ========
 A small command-line python script that creates a local backup of your
-Flickr data.  It mirrors images, titles, description, tags, sets and
+Flickr data.  It mirrors images, titles, description, tags, albums and
 collections.
 
 Available at https://github.com/markdoliner/flickrmirrorer
@@ -24,6 +24,7 @@ to work on Microsoft Windows with minor changes.
 <pre>
 e.x. ./flickrmirrorer /mnt/backup/flickr/
 </pre>
+
 
 Running via Cron
 ================
@@ -65,23 +66,23 @@ dest_dir/photostream/12346.jpg
 dest_dir/photostream/12346.jpg.metadata
 dest_dir/photostream/12347.jpg
 dest_dir/photostream/12347.jpg.metadata
-dest_dir/Not in any set/
-dest_dir/Not in any set/12345.jpg -> ../photostream/12345.jpg
-dest_dir/Sets/
-dest_dir/Sets/Waterfalls - 6789/
-dest_dir/Sets/Waterfalls - 6789/1_12346.jpg -> ../../photostream/12346.jpg
-dest_dir/Sets/Waterfalls - 6789/2_12347.jpg -> ../../photostream/12347.jpg
+dest_dir/Not in any album/
+dest_dir/Not in any album/12345.jpg -> ../photostream/12345.jpg
+dest_dir/Albums/
+dest_dir/Albums/Waterfalls - 6789/
+dest_dir/Albums/Waterfalls - 6789/1_12346.jpg -> ../../photostream/12346.jpg
+dest_dir/Albums/Waterfalls - 6789/2_12347.jpg -> ../../photostream/12347.jpg
 dest_dir/Collections/
-dest_dir/Collections/Nature - 2634-98761234/Waterfalls - 6789 -> ../../Sets/Waterfalls - 6789
-dest_dir/Collections/Nature - 2634-98761234/Mountains - 6790  -> ../../Sets/Mountains - 6790
+dest_dir/Collections/Nature - 2634-98761234/Waterfalls - 6789 -> ../../Albums/Waterfalls - 6789
+dest_dir/Collections/Nature - 2634-98761234/Mountains - 6790  -> ../../Albums/Mountains - 6790
 </pre>
 
 The metadata files contain JSON data dumped from the Flickr API.
 It's not the prettiest thing in the world... but it does contain
 all the necessary data in case you want to recover from it.
 
-The set and collection directories contain symlinks to the files in
-the photostream. The symlink names in sets are numbered so as to
+The album and collection directories contain symlinks to the files in
+the photostream. The symlink names in albums are numbered so as to
 preserve the order.
 
 Routine status is printed to stdout by default.
@@ -93,4 +94,4 @@ TODO
 ====
 * Mirror comments
 * Store order of photos in photostream
-* Store order of sets in collections
+* Store order of albums in collections

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # A small command-line python script that creates a local backup of your
-# Flickr data.  It mirrors images, titles, description, tags, sets and
+# Flickr data.  It mirrors images, titles, description, tags, albums and
 # collections.
 #
 # Available at https://github.com/markdoliner/flickrmirrorer
@@ -109,7 +109,7 @@ class FlickrMirrorer:
         self.print_statistics = print_statistics
         self.include_views = include_views
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
-        self.sets_dir = os.path.join(self.dest_dir, 'Sets')
+        self.albums_dir = os.path.join(self.dest_dir, 'Sets')
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
@@ -117,7 +117,7 @@ class FlickrMirrorer:
         self.deleted_photos = 0
         self.modified_photos = 0
         self.new_photos = 0
-        self.modified_sets = 0
+        self.modified_albums = 0
         self.modified_collections = 0
 
         # Create flickrapi instance
@@ -146,17 +146,17 @@ class FlickrMirrorer:
         # Fetch photos
         self._download_all_photos()
 
-        # Create sets and collections
-        self._mirror_photosets()
-        self._create_not_in_photoset_dir()
+        # Create albums and collections
+        self._mirror_albums()
+        self._create_not_in_any_album_dir()
         self._mirror_collections()
 
         if self.print_statistics:
-            print "New photos: %d" % self.new_photos
-            print "Deleted photos: %d" % self.deleted_photos
-            print "Modified photos: %d" % self.modified_photos
-            print "Modified sets: %d" % self.modified_sets
-            print "Modified collections: %d" % self.modified_collections
+            print 'New photos: %d' % self.new_photos
+            print 'Deleted photos: %d' % self.deleted_photos
+            print 'Modified photos: %d' % self.modified_photos
+            print 'Modified albums: %d' % self.modified_albums
+            print 'Modified collections: %d' % self.modified_collections
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
@@ -200,12 +200,12 @@ class FlickrMirrorer:
 
         # Divide by 2 because we want to ignore the photo metadata files
         # for the purposes of our statistics.
-        self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, "file") / 2
+        self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, 'file') / 2
 
     def _download_photo(self, photo):
         """Fetch and save a photo and the metadata for the photo.
 
-        Returns a set containing the filenames for the data."""
+        Returns a python set containing the filenames for the data."""
         url = 'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
         photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
         photo_filename = os.path.join(self.photostream_dir, photo_basename)
@@ -245,39 +245,39 @@ class FlickrMirrorer:
         else:
             self._verbose(
                 'Skipping metadata for %s because we already have it' %
-                photo_basename )
+                photo_basename)
 
         return {photo_basename, metadata_basename}
 
-    def _mirror_photosets(self):
-        """Create a directory for each photoset, and create symlinks to the
+    def _mirror_albums(self):
+        """Create a directory for each album, and create symlinks to the
         files in the photostream."""
-        self._verbose('Creating local sets...')
+        self._verbose('Creating local albums...')
 
-        photoset_dirs = set()
+        album_dirs = set()
 
-        # Fetch photosets
+        # Fetch albums
         rsp = self.flickr.photosets_getList()
         rsp = parse_json_response(rsp)
-        if rsp['photosets']:
-            for photoset in rsp['photosets']['photoset']:
-                photoset_dirs |= self._mirror_photoset(photoset)
+        if rsp['albums']:
+            for album in rsp['photosets']['photoset']:
+                album_dirs |= self._mirror_album(album)
 
-        self._delete_unknown_files(self.sets_dir, photoset_dirs, "set")
+        self._delete_unknown_files(self.albums_dir, album_dirs, 'set')
 
-    def _mirror_photoset(self, photoset):
-        photoset_basename = self._get_set_dirname(photoset['id'], photoset['title']['_content'])
-        photoset_dir = os.path.join(self.sets_dir, photoset_basename)
+    def _mirror_album(self, album):
+        album_basename = self._get_album_dirname(album['id'], album['title']['_content'])
+        album_dir = os.path.join(self.albums_dir, album_basename)
 
         # Fetch list of photos
         photoids = []
         originalformat = {}
 
-        num_pages = int(math.ceil(float(photoset['photos']) / NUM_PHOTOS_PER_BATCH))
+        num_pages = int(math.ceil(float(album['photos']) / NUM_PHOTOS_PER_BATCH))
         for current_page in range(1, num_pages + 1):
-            # Fetch photos in this photoset
+            # Fetch photos in this album
             rsp = self.flickr.photosets_getPhotos(
-                    photoset_id=photoset['id'],
+                    album_id=album['id'],
                     extras='original_format',
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
@@ -289,24 +289,24 @@ class FlickrMirrorer:
                 originalformat[photo['id']] = photo['originalformat']
 
         # Include list of pictures in metadata
-        photoset['photos'] = photoids
+        album['photos'] = photoids
 
-        if (not self.include_views) and 'count_views' in photoset:
-            del photoset['count_views']
+        if (not self.include_views) and 'count_views' in album:
+            del album['count_views']
 
-        metadata_filename = os.path.join(photoset_dir, 'metadata')
+        metadata_filename = os.path.join(album_dir, 'metadata')
 
-        # TODO: Should ensure local set directory accurately reflects the
-        # remote set data even if the metadata hasn't changed (important in
-        # case the local set data has been tampered with).
-        if not os.path.exists(photoset_dir) or self._is_file_different(metadata_filename, photoset):
+        # TODO: Should ensure local album directory accurately reflects the
+        # remote album data even if the metadata hasn't changed (important in
+        # case the local album data has been tampered with).
+        if not os.path.exists(album_dir) or self._is_file_different(metadata_filename, album):
             # Metadata changed, might be due to updated list of photos.
-            self._progress('Updating set %s' % photoset['title']['_content'])
-            self.modified_sets += 1
+            self._progress('Updating album %s' % album['title']['_content'])
+            self.modified_albums += 1
 
-            # Delete and recreate the set
-            ensure_dir_doesnt_exist(photoset_dir)
-            ensure_dir_exists(photoset_dir)
+            # Delete and recreate the album
+            ensure_dir_doesnt_exist(album_dir)
+            ensure_dir_exists(album_dir)
 
             # Create symlinks for each photo, prefixed with a number so that
             # the local alphanumeric sort order matches the order on Flickr.
@@ -314,38 +314,38 @@ class FlickrMirrorer:
             for i, photoid in enumerate(photoids):
                 photo_basename = '%s.%s' % (photoid, originalformat[photoid])
                 photo_fullname = os.path.join(self.photostream_dir, photo_basename)
-                photo_relname = os.path.relpath(photo_fullname, photoset_dir)
+                photo_relname = os.path.relpath(photo_fullname, album_dir)
                 symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), photoid, originalformat[photoid])
-                symlink_filename = os.path.join(photoset_dir, symlink_basename)
+                symlink_filename = os.path.join(album_dir, symlink_basename)
                 os.symlink(photo_relname, symlink_filename)
 
             # Write metadata
-            self._write_json_if_changed(metadata_filename, photoset)
+            self._write_json_if_changed(metadata_filename, album)
 
         else:
-            self._verbose('Set %s is up-to-date' % photoset['title']['_content'])
+            self._verbose('Album %s is up-to-date' % album['title']['_content'])
 
-        return {photoset_basename}
+        return {album_basename}
 
-    def _create_not_in_photoset_dir(self):
-        """Create a directory for photos that aren't in any photoset, and
+    def _create_not_in_any_album_dir(self):
+        """Create a directory for photos that aren't in any album, and
         create symlinks to the files in the photostream."""
 
-        self._verbose('Creating local directory for photos not in a set')
+        self._verbose('Creating local directory for photos not in any album')
 
-        photoset_dir = os.path.join(self.dest_dir, 'Not in any set')
+        album_dir = os.path.join(self.dest_dir, 'Not in any set')
 
         # TODO: Ideally we would inspect the existing directory and
         # make sure it's correct, but that's a lot of work. For now
-        # just recreate the set. Fixing this would also allow us to
-        # log _progress() messages when the set has changed.
-        ensure_dir_doesnt_exist(photoset_dir)
-        ensure_dir_exists(photoset_dir)
+        # just recreate the album. Fixing this would also allow us to
+        # log _progress() messages when the album has changed.
+        ensure_dir_doesnt_exist(album_dir)
+        ensure_dir_exists(album_dir)
 
         # Fetch list of photos
         current_page = 1
         while True:
-            # Fetch photos in this photoset
+            # Fetch photos that aren't in any album
             rsp = self.flickr.photos_getNotInSet(
                     extras='original_format',
                     per_page=NUM_PHOTOS_PER_BATCH,
@@ -360,15 +360,15 @@ class FlickrMirrorer:
             for photo in photos:
                 photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
                 photo_fullname = os.path.join(self.photostream_dir, photo_basename)
-                photo_relname = os.path.relpath(photo_fullname, photoset_dir)
-                symlink_filename = os.path.join(photoset_dir, photo_basename)
+                photo_relname = os.path.relpath(photo_fullname, album_dir)
+                symlink_filename = os.path.join(album_dir, photo_basename)
                 os.symlink(photo_relname, symlink_filename)
 
             current_page += 1
 
     def _mirror_collections(self):
         """Create a directory for each collection, and create symlinks to the
-        sets."""
+        albums."""
         self._verbose('Creating local collections...')
 
         collection_dirs = set()
@@ -380,7 +380,7 @@ class FlickrMirrorer:
             for collection in rsp['collections']['collection']:
                 collection_dirs |= self._mirror_collection(collection)
 
-        self._delete_unknown_files(self.collections_dir, collection_dirs, "collection")
+        self._delete_unknown_files(self.collections_dir, collection_dirs, 'collection')
 
     def _mirror_collection(self, collection):
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
@@ -389,7 +389,7 @@ class FlickrMirrorer:
         metadata_filename = os.path.join(collection_dir, 'metadata')
 
         if not os.path.exists(collection_dir) or self._is_file_different(metadata_filename, collection):
-            # Metadata changed, might be due to updated list of sets.
+            # Metadata changed, might be due to updated list of albums.
             self._progress('Updating collection %s' % collection['title'])
             self.modified_collections += 1
 
@@ -397,23 +397,23 @@ class FlickrMirrorer:
             ensure_dir_doesnt_exist(collection_dir)
             ensure_dir_exists(collection_dir)
 
-            # Create symlinks for each set
-            for set_ in collection['set']:
-                set_basename = self._get_set_dirname(set_['id'], set_['title'])
-                set_fullname = os.path.join(self.sets_dir, set_basename)
-                set_relname = os.path.relpath(set_fullname, collection_dir)
-                symlink_filename = os.path.join(collection_dir, set_basename)
-                os.symlink(set_relname, symlink_filename)
+            # Create symlinks for each album
+            for album in collection['set']:
+                album_basename = self._get_album_dirname(album['id'], album['title'])
+                album_fullname = os.path.join(self.albums_dir, album_basename)
+                album_relname = os.path.relpath(album_fullname, collection_dir)
+                symlink_filename = os.path.join(collection_dir, album_basename)
+                os.symlink(album_relname, symlink_filename)
 
             # Write metadata
             self._write_json_if_changed(metadata_filename, collection)
 
         return {collection_basename}
 
-    def _get_set_dirname(self, id_, title):
+    def _get_album_dirname(self, id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
-        #       two sets with the same name.  Is there a better way to
+        #       two albums with the same name.  Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
         #       instead?
         return '%s - %s' % (safe_title, id_)
@@ -506,24 +506,24 @@ def main():
 
         parser.add_argument(
             '-v', '--verbose',
-            dest='verbosity', action="store_const", const=2,
+            dest='verbosity', action='store_const', const=2,
             default=1,
             help='print progress information to stdout')
 
         parser.add_argument(
             '-q', '--quiet',
-            dest='verbosity', action="store_const", const=0,
+            dest='verbosity', action='store_const', const=0,
             help='print nothing to stdout if the mirror succeeds')
 
         parser.add_argument(
-            '-s', '--statistics', action="store_const",
+            '-s', '--statistics', action='store_const',
             default=False, const=True,
             help='print transfer-statistics at the end')
 
         parser.add_argument(
-            '--ignore-views', action="store_const",
+            '--ignore-views', action='store_const',
             dest='include_views', default=True, const=False,
-            help="do not include views-counter in metadata" )
+            help='do not include views-counter in metadata')
 
         args = parser.parse_args()
 
