@@ -263,7 +263,7 @@ class FlickrMirrorer(object):
             for album in rsp['photosets']['photoset']:
                 album_dirs |= self._mirror_album(album)
 
-        self._delete_unknown_files(self.albums_dir, album_dirs, 'set')
+        self._delete_unknown_files(self.albums_dir, album_dirs, 'album')
 
     def _mirror_album(self, album):
         self._verbose('Creating local album %s' % album['title']['_content'])
