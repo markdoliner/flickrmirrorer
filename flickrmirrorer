@@ -259,13 +259,15 @@ class FlickrMirrorer(object):
         # Fetch albums
         rsp = self.flickr.photosets_getList()
         rsp = parse_json_response(rsp)
-        if rsp['albums']:
+        if rsp['photosets']:
             for album in rsp['photosets']['photoset']:
                 album_dirs |= self._mirror_album(album)
 
         self._delete_unknown_files(self.albums_dir, album_dirs, 'set')
 
     def _mirror_album(self, album):
+        self._verbose('Creating local album %s' % album['title']['_content'])
+
         album_basename = self._get_album_dirname(album['id'], album['title']['_content'])
         album_dir = os.path.join(self.albums_dir, album_basename)
 
@@ -277,7 +279,7 @@ class FlickrMirrorer(object):
         for current_page in range(1, num_pages + 1):
             # Fetch photos in this album
             rsp = self.flickr.photosets_getPhotos(
-                    album_id=album['id'],
+                    photoset_id=album['id'],
                     extras='original_format',
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
