@@ -97,7 +97,7 @@ def parse_json_response(rsp):
         sys.exit(1)
     return rsp
 
-class FlickrMirrorer:
+class FlickrMirrorer(object):
     dest_dir = None
     photostream_dir = None
     tmp_filename = None
