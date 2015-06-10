@@ -200,11 +200,12 @@ class FlickrMirrorer(object):
             rsp = parse_json_response(rsp)
 
             photos = rsp['photos']['photo']
-            if not photos:
-                # We've reached the end of the photostream.  Stop looping.
-                break
             for photo in photos:
                 new_files |= self._download_photo(photo)
+
+            if rsp['photos']['pages'] == current_page:
+                # We've reached the end of the photostream.  Stop looping.
+                break
 
             current_page += 1
 
