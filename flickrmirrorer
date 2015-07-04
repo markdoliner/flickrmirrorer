@@ -468,7 +468,8 @@ class FlickrMirrorer(object):
 
         return {collection_basename}
 
-    def _get_album_dirname(self, id_, title):
+    @staticmethod
+    def _get_album_dirname(id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two albums with the same name.  Is there a better way to
@@ -476,14 +477,16 @@ class FlickrMirrorer(object):
         #       instead?
         return '%s - %s' % (safe_title, id_)
 
-    def _get_collection_dirname(self, id_, title):
+    @staticmethod
+    def _get_collection_dirname(id_, title):
         safe_title = urllib.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two collections with the same name (is that even possible?)
         #       Is there a better way to handle that?
         return '%s - %s' % (safe_title, id_)
 
-    def _is_file_different(self, filename, data):
+    @staticmethod
+    def _is_file_different(filename, data):
         """Return True if the contents of the file 'filename' differ
         from 'data'. Otherwise return False."""
         try:
