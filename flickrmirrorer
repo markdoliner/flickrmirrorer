@@ -76,7 +76,7 @@ NUM_PHOTOS_PER_BATCH = 500
 
 def _check_flickrapi_version():
     flickrapi_version = pkg_resources.get_distribution('flickrapi').version
-    if float(flickrapi_version) < 2.0:
+    if pkg_resources.parse_version(flickrapi_version) < pkg_resources.parse_version('2.0'):
         sys.stderr.write(
             'Error: The installed version of the flickrapi python \n'
             '       library (%s) is too old. 2.0 or newer is required.\n' % flickrapi_version)
