@@ -548,47 +548,47 @@ class FlickrMirrorer(object):
 
 
 def main():
+    _check_flickrapi_version()
+
+    parser = argparse.ArgumentParser(
+        description='Create a local mirror of your flickr data.')
+
+    parser.add_argument(
+        'destdir',
+        help='the path to where the mirror shall be stored')
+
+    parser.add_argument(
+        '-v', '--verbose',
+        dest='verbosity', action='store_const', const=2,
+        default=1,
+        help='print progress information to stdout')
+
+    parser.add_argument(
+        '-q', '--quiet',
+        dest='verbosity', action='store_const', const=0,
+        help='print nothing to stdout if the mirror succeeds')
+
+    parser.add_argument(
+        '-s', '--statistics', action='store_const',
+        default=False, const=True,
+        help='print transfer-statistics at the end')
+
+    parser.add_argument(
+        '--ignore-views', action='store_const',
+        dest='include_views', default=True, const=False,
+        help='do not include views-counter in metadata')
+
+    args = parser.parse_args()
+
+    mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
+                              args.statistics, args.include_views)
+    mirrorer.run()
+
+
+if __name__ == '__main__':
     try:
-        _check_flickrapi_version()
-
-        parser = argparse.ArgumentParser(
-            description='Create a local mirror of your flickr data.')
-
-        parser.add_argument(
-            'destdir',
-            help='the path to where the mirror shall be stored')
-
-        parser.add_argument(
-            '-v', '--verbose',
-            dest='verbosity', action='store_const', const=2,
-            default=1,
-            help='print progress information to stdout')
-
-        parser.add_argument(
-            '-q', '--quiet',
-            dest='verbosity', action='store_const', const=0,
-            help='print nothing to stdout if the mirror succeeds')
-
-        parser.add_argument(
-            '-s', '--statistics', action='store_const',
-            default=False, const=True,
-            help='print transfer-statistics at the end')
-
-        parser.add_argument(
-            '--ignore-views', action='store_const',
-            dest='include_views', default=True, const=False,
-            help='do not include views-counter in metadata')
-
-        args = parser.parse_args()
-
-        mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                                  args.statistics, args.include_views)
-        mirrorer.run()
+        main()
     except KeyboardInterrupt:
         # User exited with CTRL+C
         # Print a newline to leave the console in a prettier state
         print
-
-
-if __name__ == '__main__':
-    main()
