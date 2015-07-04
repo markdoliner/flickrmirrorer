@@ -10,9 +10,10 @@ Available at https://github.com/markdoliner/flickrmirrorer
 Requirements
 ============
 * python 2.something
-* python flickrapi library.
+* python flickrapi library 2.0 or newer.
   * Homepage: http://stuvel.eu/flickrapi
   * Ubuntu: apt-get install python-flickrapi
+* python requests
 
 
 Usage
