@@ -37,9 +37,11 @@ import argparse
 import errno
 import math
 import os
+import pkg_resources
 import shutil
 import sys
 import urllib
+import webbrowser
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -59,11 +61,22 @@ API_SECRET = '7c024f6e7a36fc03'
 
 PLEASE_GRANT_AUTHORIZATION_MSG = """
 Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
-Press 'return' when finished.
+
+1. Visit %s
+2. Click "OK, I'LL AUTHORIZE IT"
+3. Copy and paste the code here and press 'return'
 
 """
 
 NUM_PHOTOS_PER_BATCH = 500
+
+def _check_flickrapi_version():
+    flickrapi_version = pkg_resources.get_distribution('flickrapi').version
+    if float(flickrapi_version) < 2.0:
+        sys.stderr.write(
+            'Error: The installed version of the flickrapi python \n'
+            '       library (%s) is too old. 2.0 or newer is required.\n' % flickrapi_version)
+        sys.exit(1)
 
 def ensure_dir_exists(path):
     """Create the directory 'path' if it does not exist.
@@ -86,16 +99,15 @@ def ensure_dir_doesnt_exist(path):
             sys.stderr.write('Error removing %s: %s\n' % (path, ex.strerror))
             sys.exit(1)
 
-# flickrapi should really do this for us :-(
-def parse_json_response(rsp):
-    """Parse the flickr API response as JSON."""
-    # Strip off the "jsonFlickrApi({...});" wrapper
-    rsp = rsp[14:-1]
-    rsp = json.loads(rsp)
+def validate_json_response(rsp):
+    """Exits the script with an error if the response is a failure.
+
+    Args:
+       rsp (dict): A parse JSON response from the Flickr API.
+    """
     if rsp['stat'] != 'ok':
         sys.stderr.write('API request failed: Error %(code)s: %(message)s\n' % rsp)
         sys.exit(1)
-    return rsp
 
 class FlickrMirrorer(object):
     dest_dir = None
@@ -122,7 +134,7 @@ class FlickrMirrorer(object):
         self.modified_collections = 0
 
         # Create flickrapi instance
-        self.flickr = flickrapi.FlickrAPI(API_KEY, secret=API_SECRET, format='json')
+        self.flickr = flickrapi.FlickrAPI(api_key=API_KEY, secret=API_SECRET, format='parsed-json')
 
     def run(self):
         try:
@@ -132,14 +144,21 @@ class FlickrMirrorer(object):
 
     def _run_helper(self):
         # Authenticate
-        (token, frob) = self.flickr.get_token_part_one(perms='read')
-        if not token:
-            raw_input(PLEASE_GRANT_AUTHORIZATION_MSG)
-        try:
-            self.flickr.get_token_part_two((token, frob))
-        except flickrapi.exceptions.FlickrError, ex:
-            sys.stderr.write('Error authenticating: %s\n' % ex.message)
-            sys.exit(1)
+        # The user-friendly way to do this is with this command:
+        #     self.flickr.authenticate_via_browser(perms='read')
+        # However, the nature of this script is such that we don't want
+        # to rely on people running it somwhere with a web browser
+        # installed. So use the manual authentication process. A
+        # reasonable compromise might be to try browser auth first and
+        # if it fails then fall back to manual auth. Really flickrapi
+        # should do that for us. Or at least print the URL to the
+        # console.
+        if not self.flickr.token_valid(perms=u'read'):
+            self.flickr.get_request_token(oauth_callback=u'oob')
+            authorize_url = self.flickr.auth_url(perms=u'read')
+            webbrowser.open_new_tab(authorize_url)
+            verifier = raw_input(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
+            self.flickr.get_access_token(verifier.decode('ascii'))
 
         # Create destination directory
         ensure_dir_exists(self.dest_dir)
@@ -147,7 +166,7 @@ class FlickrMirrorer(object):
         # Fetch photos
         self._download_all_photos()
 
-        # Rename the albums directory from "Sets to "Albums," if applicable.
+        # Rename the albums directory from "Sets" to "Albums," if applicable.
         # This is only needed to migrate people who used older versions of
         # this script. It can be removed once everyone has been migrated.
         # TODO: Remove this and the old_albums_dir variable at some point. It
@@ -197,7 +216,7 @@ class FlickrMirrorer(object):
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
             )
-            rsp = parse_json_response(rsp)
+            validate_json_response(rsp)
 
             photos = rsp['photos']['photo']
             for photo in photos:
@@ -274,7 +293,7 @@ class FlickrMirrorer(object):
 
         # Fetch albums
         rsp = self.flickr.photosets_getList()
-        rsp = parse_json_response(rsp)
+        validate_json_response(rsp)
         if rsp['photosets']:
             for album in rsp['photosets']['photoset']:
                 album_dirs |= self._mirror_album(album)
@@ -300,7 +319,7 @@ class FlickrMirrorer(object):
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
             )
-            rsp = parse_json_response(rsp)
+            validate_json_response(rsp)
 
             for photo in rsp['photoset']['photo']:
                 photoids.append(photo['id'])
@@ -384,7 +403,7 @@ class FlickrMirrorer(object):
                     per_page=NUM_PHOTOS_PER_BATCH,
                     page=current_page,
             )
-            rsp = parse_json_response(rsp)
+            validate_json_response(rsp)
             photos = rsp['photos']['photo']
             if not photos:
                 # We've reached the end of the photostream.  Stop looping.
@@ -408,7 +427,7 @@ class FlickrMirrorer(object):
 
         # Fetch collections
         rsp = self.flickr.collections_getTree()
-        rsp = parse_json_response(rsp)
+        validate_json_response(rsp)
         if rsp['collections']:
             for collection in rsp['collections']['collection']:
                 collection_dirs |= self._mirror_collection(collection)
@@ -530,6 +549,8 @@ class FlickrMirrorer(object):
 
 def main():
     try:
+        _check_flickrapi_version()
+
         parser = argparse.ArgumentParser(
             description='Create a local mirror of your flickr data.')
 
