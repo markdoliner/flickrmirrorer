@@ -56,6 +56,7 @@ except ImportError:
     sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
     sys.exit(1)
 
+
 API_KEY = '9c5c431017e712bde232a2f142703bb2'
 API_SECRET = '7c024f6e7a36fc03'
 
@@ -70,6 +71,7 @@ Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
 
 NUM_PHOTOS_PER_BATCH = 500
 
+
 def _check_flickrapi_version():
     flickrapi_version = pkg_resources.get_distribution('flickrapi').version
     if float(flickrapi_version) < 2.0:
@@ -77,6 +79,7 @@ def _check_flickrapi_version():
             'Error: The installed version of the flickrapi python \n'
             '       library (%s) is too old. 2.0 or newer is required.\n' % flickrapi_version)
         sys.exit(1)
+
 
 def _ensure_dir_exists(path):
     """Create the directory 'path' if it does not exist.
@@ -89,6 +92,7 @@ def _ensure_dir_exists(path):
                     % (path, ex.strerror))
             sys.exit(1)
 
+
 def _ensure_dir_doesnt_exist(path):
     """Remove the directory 'path' and all contents if it exists.
     Calls sys.exit(1) if the directory or any contents could not be removed."""
@@ -99,6 +103,7 @@ def _ensure_dir_doesnt_exist(path):
             sys.stderr.write('Error removing %s: %s\n' % (path, ex.strerror))
             sys.exit(1)
 
+
 def _validate_json_response(rsp):
     """Exits the script with an error if the response is a failure.
 
@@ -108,6 +113,7 @@ def _validate_json_response(rsp):
     if rsp['stat'] != 'ok':
         sys.stderr.write('API request failed: Error %(code)s: %(message)s\n' % rsp)
         sys.exit(1)
+
 
 class FlickrMirrorer(object):
     dest_dir = None
