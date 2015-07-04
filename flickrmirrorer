@@ -487,7 +487,8 @@ class FlickrMirrorer(object):
         """Return True if the contents of the file 'filename' differ
         from 'data'. Otherwise return False."""
         try:
-            orig_data = json.load(open(filename))
+            with open(filename) as json_file:
+                orig_data = json.load(json_file)
             return orig_data != data
         except IOError, ex:
             if ex.errno != errno.ENOENT:
@@ -506,9 +507,8 @@ class FlickrMirrorer(object):
             # Data has not changed--do nothing.
             return False
 
-        f = open(self.tmp_filename, 'w')
-        json.dump(data, f)
-        f.close()
+        with open(self.tmp_filename, 'w') as json_file:
+            json.dump(data, json_file)
         os.rename(self.tmp_filename, filename)
         return True
 
