@@ -44,6 +44,7 @@ import six
 import sys
 import urllib
 import webbrowser
+import urlparse
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -258,8 +259,25 @@ class FlickrMirrorer(object):
         """Fetch and save a photo and the metadata for the photo.
 
         Returns a python set containing the filenames for the data."""
-        url = 'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
-        photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+        url = None
+        photo_basename = None
+        mediatype = photo['media']
+        if mediatype == 'photo':
+            urlformat = (
+                'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s')
+            url = urlformat % photo
+            photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+        elif mediatype == 'video':
+            # The video download link on the web page gets redirected to the CDN.
+            # By looking at the CDN URL, we can find out the video's original name.
+            url = 'https://www.flickr.com/video_download.gne?id=%(id)s' % photo
+            head = requests.head(url, allow_redirects=True)
+            photo_basename = os.path.basename(urlparse.urlparse(head.url).path)
+        else:
+            sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
+            sys.stderr.write(json.dumps(photo, indent=2) + '\n')
+            sys.exit(1)
+
         photo_filename = os.path.join(self.photostream_dir, photo_basename)
         metadata_basename = '%s.metadata' % photo_basename
         metadata_filename = '%s.metadata' % photo_filename
