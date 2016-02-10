@@ -44,6 +44,7 @@ import six
 import sys
 import urllib
 import webbrowser
+import urlparse
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -58,7 +59,6 @@ except ImportError:
     sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
     sys.exit(1)
 
-
 API_KEY = '9c5c431017e712bde232a2f142703bb2'
 API_SECRET = '7c024f6e7a36fc03'
 
@@ -72,6 +72,10 @@ Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
 """
 
 NUM_PHOTOS_PER_BATCH = 500
+
+
+class VideoDownloadException(IOError):
+    pass
 
 
 def _check_flickrapi_version():
@@ -225,6 +229,7 @@ class FlickrMirrorer(object):
         if self.include_views:
             metadata_fields += ',views'
 
+        exceptions = []
         while True:
             rsp = self.flickr.people_getPhotos(
                 user_id='me',
@@ -236,13 +241,24 @@ class FlickrMirrorer(object):
 
             photos = rsp['photos']['photo']
             for photo in photos:
-                new_files |= self._download_photo(photo)
+                try:
+                    new_files |= self._download_photo(photo)
+                except VideoDownloadException as e:
+                    print e
+                    exceptions.append(e)
 
             if rsp['photos']['pages'] == current_page:
                 # We've reached the end of the photostream.  Stop looping.
                 break
 
             current_page += 1
+
+        # Error out if there were exceptions
+        if exceptions:
+            sys.stderr.write("Error: Some files failed to download:")
+            for exception in exceptions:
+                sys.stderr.write("  " + str(exception) + "\n")
+            sys.exit(1)
 
         # Error out if we didn't fetch any photos
         if not new_files:
@@ -258,8 +274,36 @@ class FlickrMirrorer(object):
         """Fetch and save a photo and the metadata for the photo.
 
         Returns a python set containing the filenames for the data."""
-        url = 'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' % photo
-        photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+        url = None
+        photo_basename = None
+        mediatype = photo['media']
+        if mediatype == 'photo':
+            urlformat = (
+                'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s')
+            url = urlformat % photo
+            photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+        elif mediatype == 'video':
+            # This URL gets redirected to the CDN. By looking at the CDN URL, we can find out the video's
+            # original name.
+            #
+            # URL created according to these instructions:
+            # http://code.flickr.net/2009/03/02/videos-in-the-flickr-api-part-deux/
+            url = 'http://www.flickr.com/photos/%(owner)s/%(id)s/play/orig/%(originalsecret)s/' % photo
+            head = requests.head(url, allow_redirects=True)
+
+            if head.status_code is not 200:
+                # For some videos the above URL doesn't work, and the only way I know how to
+                # get those is to download them manually using a logged in web browser. Just
+                # tell the user that. /johan.walles@gmail.com - 2016feb12
+                raise VideoDownloadException("Manual download required: "
+                                             "https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
+
+            photo_basename = os.path.basename(urlparse.urlparse(head.url).path)
+        else:
+            sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
+            sys.stderr.write(json.dumps(photo, indent=2) + '\n')
+            sys.exit(1)
+
         photo_filename = os.path.join(self.photostream_dir, photo_basename)
         metadata_basename = '%s.metadata' % photo_basename
         metadata_filename = '%s.metadata' % photo_filename
