@@ -59,7 +59,6 @@ except ImportError:
     sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
     sys.exit(1)
 
-
 API_KEY = '9c5c431017e712bde232a2f142703bb2'
 API_SECRET = '7c024f6e7a36fc03'
 
@@ -73,6 +72,10 @@ Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
 """
 
 NUM_PHOTOS_PER_BATCH = 500
+
+
+class VideoDownloadException(IOError):
+    pass
 
 
 def _check_flickrapi_version():
@@ -240,7 +243,7 @@ class FlickrMirrorer(object):
             for photo in photos:
                 try:
                     new_files |= self._download_photo(photo)
-                except Exception as e:
+                except VideoDownloadException as e:
                     print e
                     exceptions.append(e)
 
@@ -255,6 +258,7 @@ class FlickrMirrorer(object):
             sys.stderr.write("Error: Some files failed to download:")
             for exception in exceptions:
                 print exception
+            sys.exit(1)
 
         # Error out if we didn't fetch any photos
         if not new_files:
@@ -286,8 +290,8 @@ class FlickrMirrorer(object):
             # http://code.flickr.net/2009/03/02/videos-in-the-flickr-api-part-deux/
             url = 'http://www.flickr.com/photos/%(owner)s/%(id)s/play/orig/%(originalsecret)s/' % photo
             head = requests.head(url, allow_redirects=True)
-            if head.status is not 200:
-                raise IOError("Manual download required: https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
+            if head.status_code is not 200:
+                raise VideoDownloadException("Manual download required: https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
             photo_basename = os.path.basename(urlparse.urlparse(head.url).path)
         else:
             sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
