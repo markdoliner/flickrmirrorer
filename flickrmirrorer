@@ -257,7 +257,7 @@ class FlickrMirrorer(object):
         if exceptions:
             sys.stderr.write("Error: Some files failed to download:")
             for exception in exceptions:
-                print exception
+                sys.stderr.write("  " + str(exception) + "\n")
             sys.exit(1)
 
         # Error out if we didn't fetch any photos
