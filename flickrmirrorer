@@ -74,7 +74,7 @@ Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
 NUM_PHOTOS_PER_BATCH = 500
 
 
-class VideoDownloadException(IOError):
+class VideoDownloadError(Exception):
     pass
 
 
@@ -243,7 +243,7 @@ class FlickrMirrorer(object):
             for photo in photos:
                 try:
                     new_files |= self._download_photo(photo)
-                except VideoDownloadException as e:
+                except VideoDownloadError as e:
                     print e
                     exceptions.append(e)
 
@@ -295,8 +295,8 @@ class FlickrMirrorer(object):
                 # For some videos the above URL doesn't work, and the only way I know how to
                 # get those is to download them manually using a logged in web browser. Just
                 # tell the user that. /johan.walles@gmail.com - 2016feb12
-                raise VideoDownloadException("Manual download required: "
-                                             "https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
+                raise VideoDownloadError("Manual download required: "
+                                         "https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
 
             photo_basename = os.path.basename(urlparse.urlparse(head.url).path)
         else:
