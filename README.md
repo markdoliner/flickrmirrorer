@@ -91,6 +91,11 @@ Errors are printed to stderr.
 To see more options run with the --help flag.
 
 
+Running unit tests
+==================
+Run [`py.test`](http://pytest.org/).
+
+
 TODO
 ====
 * Mirror comments

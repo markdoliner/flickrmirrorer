@@ -46,6 +46,9 @@ import six
 import sys
 import webbrowser
 from six.moves import urllib
+import dateutil.parser
+import datetime
+import time
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -121,6 +124,56 @@ def _validate_json_response(rsp):
     if rsp['stat'] != 'ok':
         sys.stderr.write('API request failed: Error %(code)s: %(message)s\n' % rsp)
         sys.exit(1)
+
+
+def test_known_timestamp():
+    timestamp = _get_timestamp({
+        'datetakenunknown': '0',
+        'datetaken': '2015-11-02 12:35:07'
+    })
+    assert timestamp.isoformat() == "2015-11-02T12:35:07"
+
+
+def test_plain_title_timestamp():
+    timestamp = _get_timestamp({
+        'datetakenunknown': '1',
+        'datetaken': '2014-10-01 13:45:37',
+        'title': '20151130_135610'
+    })
+    assert timestamp.isoformat() == "2015-11-30T13:56:10"
+
+
+def test_unparseable_title_timestamp():
+    timestamp = _get_timestamp({
+        'datetakenunknown': '1',
+        'datetaken': '2014-10-01 13:45:37',
+        'title': 'flaskpost'
+    })
+
+    # Fall back on datetaken if we can't parse the date from the title
+    assert timestamp.isoformat() == "2014-10-01T13:45:37"
+
+
+def _get_timestamp(photo):
+    """
+    Return photo timestamp, get it from:
+    1. datetaken unless datetakenunknown
+    2. parse from photo title 'YYYYMMDD_HHmmss'
+    3. datetaken anyway; it's available even if unknown, so we just go with
+    whatever Flickr made up for us
+    """
+    if photo['datetakenunknown'] == "0":
+        return dateutil.parser.parse(photo['datetaken'])
+
+    try:
+        parsed = datetime.datetime.strptime(photo['title'], '%Y%m%d_%H%M%S')
+        if parsed.year > 2000 and parsed < datetime.datetime.now():
+            return parsed
+    except ValueError:
+        # Unable to parse photo title as datetime
+        pass
+
+    return dateutil.parser.parse(photo['datetaken'])
 
 
 class FlickrMirrorer(object):
@@ -321,11 +374,13 @@ class FlickrMirrorer(object):
             sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % metadata_filename)
             sys.exit(1)
 
-        # Check if we should fetch the image
-        if not os.path.exists(photo_filename) \
-                or int(photo['lastupdate']) >= os.lstat(photo_filename).st_mtime:
-            # We don't have this photo or the version on the server is newer
+        # Download photo if photo doesn't exist, if metadata doesn't exist or if
+        # metadata has changed
+        should_download_photo = not os.path.exists(photo_filename)
+        should_download_photo |= not os.path.exists(metadata_filename)
+        should_download_photo |= self._is_file_different(metadata_filename, photo)
 
+        if should_download_photo:
             if not os.path.exists(photo_filename):
                 self.new_photos += 1
             else:
@@ -354,6 +409,10 @@ class FlickrMirrorer(object):
             self._verbose(
                 'Skipping metadata for %s because we already have it' %
                 photo_basename)
+
+        timestamp = _get_timestamp(photo)
+        self._set_timestamp_if_changed(timestamp, photo_filename)
+        self._set_timestamp_if_changed(timestamp, metadata_filename)
 
         return {photo_basename, metadata_basename}
 
@@ -565,6 +624,15 @@ class FlickrMirrorer(object):
                 sys.stderr.write('Error reading %s: %s\n' % (filename, ex))
                 sys.exit(1)
             return True
+
+    def _set_timestamp_if_changed(self, timestamp, file):
+        stat0 = os.stat(file)
+        timestamp_since_epoch = time.mktime(timestamp.timetuple())
+        os.utime(file, (timestamp_since_epoch, timestamp_since_epoch))
+
+        stat1 = os.stat(file)
+        if stat0.st_mtime != stat1.st_mtime:
+            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(file), timestamp))
 
     def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
