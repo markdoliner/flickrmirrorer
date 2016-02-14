@@ -43,8 +43,8 @@ import shutil
 import six
 import sys
 import urllib
-import webbrowser
 import urlparse
+import webbrowser
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -244,7 +244,6 @@ class FlickrMirrorer(object):
                 try:
                     new_files |= self._download_photo(photo)
                 except VideoDownloadError as e:
-                    print e
                     exceptions.append(e)
 
             if rsp['photos']['pages'] == current_page:
@@ -271,9 +270,11 @@ class FlickrMirrorer(object):
         self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, 'file') / 2
 
     def _download_photo(self, photo):
-        """Fetch and save a photo and the metadata for the photo.
+        """Fetch and save a media item (photo or video) and the metadata
+        associated with it.
 
-        Returns a python set containing the filenames for the data."""
+        Returns a python set containing the filenames for the data.
+        """
         url = None
         photo_basename = None
         mediatype = photo['media']
