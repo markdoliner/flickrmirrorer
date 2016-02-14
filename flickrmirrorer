@@ -229,7 +229,7 @@ class FlickrMirrorer(object):
         if self.include_views:
             metadata_fields += ',views'
 
-        exceptions = []
+        download_errors = []
         while True:
             rsp = self.flickr.people_getPhotos(
                 user_id='me',
@@ -244,7 +244,7 @@ class FlickrMirrorer(object):
                 try:
                     new_files |= self._download_photo(photo)
                 except VideoDownloadError as e:
-                    exceptions.append(e)
+                    download_errors.append(e)
 
             if rsp['photos']['pages'] == current_page:
                 # We've reached the end of the photostream.  Stop looping.
@@ -253,10 +253,10 @@ class FlickrMirrorer(object):
             current_page += 1
 
         # Error out if there were exceptions
-        if exceptions:
+        if download_errors:
             sys.stderr.write("Error: Some files failed to download:")
-            for exception in exceptions:
-                sys.stderr.write("  " + str(exception) + "\n")
+            for error in download_errors:
+                sys.stderr.write("  " + str(error) + "\n")
             sys.exit(1)
 
         # Error out if we didn't fetch any photos
