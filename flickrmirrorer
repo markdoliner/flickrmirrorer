@@ -74,7 +74,8 @@ NUM_PHOTOS_PER_BATCH = 500
 
 
 class VideoDownloadError(Exception):
-    pass
+    def __str__(self):
+        return '%s' % self.args[0]
 
 
 def _check_flickrapi_version():
@@ -253,7 +254,7 @@ class FlickrMirrorer(object):
 
         # Error out if there were exceptions
         if download_errors:
-            sys.stderr.write("Error: Some files failed to download:")
+            sys.stderr.write("Error: Some files failed to download:\n")
             for error in download_errors:
                 sys.stderr.write("  " + str(error) + "\n")
             sys.exit(1)
@@ -295,8 +296,8 @@ class FlickrMirrorer(object):
                 # For some videos the above URL doesn't work, and the only way I know how to
                 # get those is to download them manually using a logged in web browser. Just
                 # tell the user that. /johan.walles@gmail.com - 2016feb12
-                raise VideoDownloadError("Manual download required: "
-                                         "https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
+                raise VideoDownloadError('Manual download required: '
+                                         'https://www.flickr.com/video_download.gne?id=%(id)s' % photo)
 
             photo_basename = os.path.basename(urllib.parse.urlparse(head.url).path)
         else:
