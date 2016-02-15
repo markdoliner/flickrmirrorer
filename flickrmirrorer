@@ -42,9 +42,8 @@ import requests
 import shutil
 import six
 import sys
-import urllib
-import urlparse
 import webbrowser
+from six.moves import urllib
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -299,7 +298,7 @@ class FlickrMirrorer(object):
                 raise VideoDownloadError("Manual download required: "
                                          "https://www.flickr.com/video_download.gne?id=%(id)s" % photo)
 
-            photo_basename = os.path.basename(urlparse.urlparse(head.url).path)
+            photo_basename = os.path.basename(urllib.parse.urlparse(head.url).path)
         else:
             sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
             sys.stderr.write(json.dumps(photo, indent=2) + '\n')
@@ -535,7 +534,7 @@ class FlickrMirrorer(object):
 
     @staticmethod
     def _get_album_dirname(id_, title):
-        safe_title = urllib.quote(title.encode('utf-8'), " ',")
+        safe_title = urllib.parse.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two albums with the same name.  Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
@@ -544,7 +543,7 @@ class FlickrMirrorer(object):
 
     @staticmethod
     def _get_collection_dirname(id_, title):
-        safe_title = urllib.quote(title.encode('utf-8'), " ',")
+        safe_title = urllib.parse.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
         #       two collections with the same name (is that even possible?)
         #       Is there a better way to handle that?
