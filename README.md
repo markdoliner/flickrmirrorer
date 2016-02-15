@@ -1,8 +1,8 @@
 Overview
 ========
 A small command-line python script that creates a local backup of your
-Flickr data.  It mirrors images, titles, description, tags, albums and
-collections.
+Flickr data. It mirrors images, videos, titles, description, tags,
+albums and collections.
 
 Available at https://github.com/markdoliner/flickrmirrorer
 
