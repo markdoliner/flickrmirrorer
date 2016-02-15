@@ -12,7 +12,7 @@ Requirements
 * python 2.something
 * python flickrapi library 2.0 or newer.
   * Homepage: http://stuvel.eu/flickrapi
-  * Ubuntu: apt-get install python-flickrapi
+  * Ubuntu 16.04 LTS Xenial and newer: apt-get install python-flickrapi
 * python requests
 
 
