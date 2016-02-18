@@ -161,6 +161,9 @@ def _get_timestamp(photo):
     2. parse from photo title 'YYYYMMDD_HHmmss'
     3. datetaken anyway; it's available even if unknown, so we just go with
     whatever Flickr made up for us
+
+    Returns:
+        datetime.datetime
     """
     if photo['datetakenunknown'] == "0":
         return dateutil.parser.parse(photo['datetaken'])
@@ -625,14 +628,20 @@ class FlickrMirrorer(object):
                 sys.exit(1)
             return True
 
-    def _set_timestamp_if_changed(self, timestamp, file):
-        stat0 = os.stat(file)
-        timestamp_since_epoch = time.mktime(timestamp.timetuple())
-        os.utime(file, (timestamp_since_epoch, timestamp_since_epoch))
+    def _set_timestamp_if_changed(self, timestamp, filename):
+        """Set the access and modified times of a file to the specified
+        timestamp.
 
-        stat1 = os.stat(file)
+        Args:
+            timestamp (datetime.datetime)
+        """
+        stat0 = os.stat(filename)
+        timestamp_since_epoch = time.mktime(timestamp.timetuple())
+        os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+
+        stat1 = os.stat(filename)
         if stat0.st_mtime != stat1.st_mtime:
-            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(file), timestamp))
+            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
     def _write_json_if_changed(self, filename, data):
         """Write the given data to the specified filename, but only if it's
