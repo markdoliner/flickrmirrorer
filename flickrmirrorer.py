@@ -406,7 +406,7 @@ class FlickrMirrorer(object):
                           % photo_basename)
 
         # Write metadata
-        if self._write_json_if_changed(metadata_filename, photo):
+        if self._write_json_if_different(metadata_filename, photo):
             self._progress('Updated metadata for %s' % photo_basename)
         else:
             self._verbose(
@@ -414,8 +414,8 @@ class FlickrMirrorer(object):
                 photo_basename)
 
         timestamp = _get_timestamp(photo)
-        self._set_timestamp_if_changed(timestamp, photo_filename)
-        self._set_timestamp_if_changed(timestamp, metadata_filename)
+        self._set_timestamp_if_different(timestamp, photo_filename)
+        self._set_timestamp_if_different(timestamp, metadata_filename)
 
         return {photo_basename, metadata_basename}
 
@@ -492,7 +492,7 @@ class FlickrMirrorer(object):
                 os.symlink(photo_relname, symlink_filename)
 
             # Write metadata
-            self._write_json_if_changed(metadata_filename, album)
+            self._write_json_if_different(metadata_filename, album)
 
         else:
             self._verbose('Album %s is up-to-date' % album['title']['_content'])
@@ -593,7 +593,7 @@ class FlickrMirrorer(object):
                 os.symlink(album_relname, symlink_filename)
 
             # Write metadata
-            self._write_json_if_changed(metadata_filename, collection)
+            self._write_json_if_different(metadata_filename, collection)
 
         return {collection_basename}
 
@@ -628,7 +628,7 @@ class FlickrMirrorer(object):
                 sys.exit(1)
             return True
 
-    def _set_timestamp_if_changed(self, timestamp, filename):
+    def _set_timestamp_if_different(self, timestamp, filename):
         """Set the access and modified times of a file to the specified
         timestamp.
 
@@ -643,7 +643,7 @@ class FlickrMirrorer(object):
         if stat0.st_mtime != stat1.st_mtime:
             self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
-    def _write_json_if_changed(self, filename, data):
+    def _write_json_if_different(self, filename, data):
         """Write the given data to the specified filename, but only if it's
         different from what is currently there. Return true if the file was
         written.
