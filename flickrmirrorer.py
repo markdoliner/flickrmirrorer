@@ -36,6 +36,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
+import datetime
+import dateutil.parser
 import errno
 import math
 import os
@@ -44,11 +46,9 @@ import requests
 import shutil
 import six
 import sys
+import time
 import webbrowser
 from six.moves import urllib
-import dateutil.parser
-import datetime
-import time
 
 try:
     # We try importing simplejson first because it's faster than json
