@@ -635,12 +635,9 @@ class FlickrMirrorer(object):
         Args:
             timestamp (datetime.datetime)
         """
-        stat0 = os.stat(filename)
         timestamp_since_epoch = time.mktime(timestamp.timetuple())
-        os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
-
-        stat1 = os.stat(filename)
-        if stat0.st_mtime != stat1.st_mtime:
+        if timestamp_since_epoch != os.path.getmtime(filename):
+            os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
             self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
     def _write_json_if_different(self, filename, data):
