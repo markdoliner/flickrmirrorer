@@ -10,6 +10,8 @@ Available at https://github.com/markdoliner/flickrmirrorer
 Requirements
 ============
 * python 2.something
+* python dateutil
+  * Ubuntu: apt-get install python-dateutil
 * python flickrapi library 2.0 or newer.
   * Homepage: http://stuvel.eu/flickrapi
   * Ubuntu 16.04 LTS Xenial and newer: apt-get install python-flickrapi
