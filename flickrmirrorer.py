@@ -660,6 +660,11 @@ class FlickrMirrorer(object):
         """Delete all files and directories in rootdir except the
         known files.  knowntype if only used for the log message.
         Returns the number of deleted entries."""
+
+        # return early if the rootdir doesn't exist
+        if not os.path.isdir(rootdir):
+            return 0
+
         delete_count = 0
         curr_entries = os.listdir(rootdir)
 
