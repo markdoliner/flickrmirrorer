@@ -334,36 +334,8 @@ class FlickrMirrorer(object):
 
         Returns a python set containing the filenames for the data.
         """
-        url = None
-        photo_basename = None
-        mediatype = photo['media']
-        if mediatype == 'photo':
-            urlformat = (
-                'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s')
-            url = urlformat % photo
-            photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
-        elif mediatype == 'video':
-            # This URL gets redirected to the CDN. By looking at the CDN URL, we can find out the video's
-            # original name.
-            #
-            # URL created according to these instructions:
-            # http://code.flickr.net/2009/03/02/videos-in-the-flickr-api-part-deux/
-            url = 'http://www.flickr.com/photos/%(owner)s/%(id)s/play/orig/%(originalsecret)s/' % photo
-            head = requests.head(url, allow_redirects=True)
-
-            if head.status_code is not 200:
-                # For some videos the above URL doesn't work, and the only way I know how to
-                # get those is to download them manually using a logged in web browser. Just
-                # tell the user that. /johan.walles@gmail.com - 2016feb12
-                raise VideoDownloadError('Manual download required: '
-                                         'https://www.flickr.com/video_download.gne?id=%(id)s' % photo)
-
-            photo_basename = os.path.basename(urllib.parse.urlparse(head.url).path)
-        else:
-            sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
-            sys.stderr.write(json.dumps(photo, indent=2) + '\n')
-            sys.exit(1)
-
+        url = self._get_photo_url(photo)
+        photo_basename = self._get_photo_basename(photo)
         photo_filename = os.path.join(self.photostream_dir, photo_basename)
         metadata_basename = '%s.metadata' % photo_basename
         metadata_filename = '%s.metadata' % photo_filename
@@ -423,7 +395,7 @@ class FlickrMirrorer(object):
     def _mirror_albums(self):
         """Create a directory for each album, and create symlinks to the
         files in the photostream."""
-        self._verbose('Creating local albums...')
+        self._verbose('Mirroring albums locally...')
 
         album_dirs = set()
 
@@ -437,32 +409,30 @@ class FlickrMirrorer(object):
         self._delete_unknown_files(self.albums_dir, album_dirs, 'album')
 
     def _mirror_album(self, album):
-        self._verbose('Creating local album %s' % album['title']['_content'])
+        self._verbose('Mirroring album %s' % album['title']['_content'])
 
         album_basename = self._get_album_dirname(album['id'], album['title']['_content'])
         album_dir = os.path.join(self.albums_dir, album_basename)
 
         # Fetch list of photos
-        photoids = []
-        originalformat = {}
+        photos = []
 
         num_pages = int(math.ceil(float(album['photos']) / NUM_PHOTOS_PER_BATCH))
         for current_page in range(1, num_pages + 1):
             # Fetch photos in this album
             rsp = self.flickr.photosets_getPhotos(
                 photoset_id=album['id'],
-                extras='original_format',
+                extras='original_format,media',
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
             )
             _validate_json_response(rsp)
 
-            for photo in rsp['photoset']['photo']:
-                photoids.append(photo['id'])
-                originalformat[photo['id']] = photo['originalformat']
+            photos += rsp['photoset']['photo']
 
-        # Include list of pictures in metadata
-        album['photos'] = photoids
+        # Include list of photo IDs in metadata, so we can tell if photos
+        # were added or removed from the album when mirroring in the future.
+        album['photos'] = [photo['id'] for photo in photos]
 
         if (not self.include_views) and 'count_views' in album:
             del album['count_views']
@@ -483,12 +453,12 @@ class FlickrMirrorer(object):
 
             # Create symlinks for each photo, prefixed with a number so that
             # the local alphanumeric sort order matches the order on Flickr.
-            digits = len(str(len(photoids)))
-            for i, photoid in enumerate(photoids):
-                photo_basename = '%s.%s' % (photoid, originalformat[photoid])
+            digits = len(str(len(photos)))
+            for i, photo in enumerate(photos):
+                photo_basename = self._get_photo_basename(photo)
                 photo_fullname = os.path.join(self.photostream_dir, photo_basename)
                 photo_relname = os.path.relpath(photo_fullname, album_dir)
-                symlink_basename = '%s_%s.%s' % (str(i+1).zfill(digits), photoid, originalformat[photoid])
+                symlink_basename = '%s_%s' % (str(i+1).zfill(digits), photo_basename)
                 symlink_filename = os.path.join(album_dir, symlink_basename)
                 os.symlink(photo_relname, symlink_filename)
 
@@ -530,12 +500,11 @@ class FlickrMirrorer(object):
         _ensure_dir_doesnt_exist(album_dir)
         _ensure_dir_exists(album_dir)
 
-        # Fetch list of photos
         current_page = 1
         while True:
-            # Fetch photos that aren't in any album
+            # Fetch list of photos that aren't in any album
             rsp = self.flickr.photos_getNotInSet(
-                extras='original_format',
+                extras='original_format,media',
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
             )
@@ -546,7 +515,7 @@ class FlickrMirrorer(object):
                 break
 
             for photo in photos:
-                photo_basename = '%s.%s' % (photo['id'], photo['originalformat'])
+                photo_basename = self._get_photo_basename(photo)
                 photo_fullname = os.path.join(self.photostream_dir, photo_basename)
                 photo_relname = os.path.relpath(photo_fullname, album_dir)
                 symlink_filename = os.path.join(album_dir, photo_basename)
@@ -597,6 +566,47 @@ class FlickrMirrorer(object):
             self._write_json_if_different(metadata_filename, collection)
 
         return {collection_basename}
+
+    def _get_photo_url(self, photo):
+        mediatype = photo['media']
+
+        if mediatype == 'photo':
+            return 'https://farm%(farm)s.staticflickr.com/%(server)s/%(id)s_%(originalsecret)s_o.%(originalformat)s' \
+                % photo
+
+        if mediatype == 'video':
+            # URL created according to these instructions:
+            # http://code.flickr.net/2009/03/02/videos-in-the-flickr-api-part-deux/
+            owner = self.flickr.token_cache.token.user_nsid
+            return 'http://www.flickr.com/photos/%s/%s/play/orig/%s/' % (
+                owner, photo['id'], photo['originalsecret'])
+
+        sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
+        sys.stderr.write(json.dumps(photo, indent=2) + '\n')
+        sys.exit(1)
+
+    def _get_photo_basename(self, photo):
+        mediatype = photo['media']
+
+        if mediatype == 'photo':
+            return '%s.%s' % (photo['id'], photo['originalformat'])
+
+        if mediatype == 'video':
+            # The photo URL gets redirected to the CDN. By looking at
+            # the CDN URL, we can find out the video's original name.
+            head = requests.head(self._get_photo_url(photo), allow_redirects=True)
+            if head.status_code is not 200:
+                # For some videos the above URL doesn't work, and the only way I know how to
+                # get those is to download them manually using a logged in web browser. Just
+                # tell the user that. /johan.walles@gmail.com - 2016feb12
+                raise VideoDownloadError('Manual download required: '
+                                         'https://www.flickr.com/video_download.gne?id=%(id)s' % photo)
+
+            return os.path.basename(urllib.parse.urlparse(head.url).path)
+
+        sys.stderr.write('Error: Unsupported media type "%s":\n' % mediatype)
+        sys.stderr.write(json.dumps(photo, indent=2) + '\n')
+        sys.exit(1)
 
     @staticmethod
     def _get_album_dirname(id_, title):
