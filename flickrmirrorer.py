@@ -437,6 +437,13 @@ class FlickrMirrorer(object):
         if (not self.include_views) and 'count_views' in album:
             del album['count_views']
 
+        # Add a version number to the album metadata. This gives us an
+        # easy way to invalidate the local copy and cause the album to
+        # be recreated, if needed. More specifically this causes the
+        # albums to be recreated now that I've fixed the bug where
+        # symlinks to videos were broken.
+        album['flickrmirrorer_album_metadata_version'] = 2
+
         metadata_filename = os.path.join(album_dir, 'metadata')
 
         # TODO: Should ensure local album directory accurately reflects the
