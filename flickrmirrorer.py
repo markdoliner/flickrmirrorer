@@ -300,10 +300,11 @@ class FlickrMirrorer(object):
 
             photos = rsp['photos']['photo']
             for photo in photos:
-                try:
-                    new_files |= self._download_photo(photo)
-                except VideoDownloadError as e:
-                    download_errors.append(e)
+		if photo['media'] == 'photo':
+                	try:
+                    		new_files |= self._download_photo(photo)
+	                except VideoDownloadError as e:
+	                    download_errors.append(e)
 
             if rsp['photos']['pages'] == current_page:
                 # We've reached the end of the photostream.  Stop looping.
@@ -428,7 +429,9 @@ class FlickrMirrorer(object):
             )
             _validate_json_response(rsp)
 
-            photos += rsp['photoset']['photo']
+	    for photo in rsp['photoset']['photo']:
+                if photo['media'] == 'photo':
+                    photos += [photo]
 
         # Include list of photo IDs in metadata, so we can tell if photos
         # were added or removed from the album when mirroring in the future.
@@ -516,7 +519,10 @@ class FlickrMirrorer(object):
                 page=current_page,
             )
             _validate_json_response(rsp)
-            photos = rsp['photos']['photo']
+            photos = []
+            for photo in rsp['photos']['photo']:
+                if photo['media'] == 'photo':
+                    photos += [photo]
             if not photos:
                 # We've reached the end of the photostream.  Stop looping.
                 break
