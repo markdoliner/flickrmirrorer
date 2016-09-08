@@ -38,6 +38,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import signal
 import argparse
 import datetime
 import dateutil.parser
@@ -180,6 +181,9 @@ class FlickrMirrorer(object):
         self.modified_albums = 0
         self.modified_collections = 0
 
+        # Register a SIGINT (Ctrl-C) handler
+        signal.signal(signal.SIGINT, self._sig_int_handler)
+
         # Create flickrapi instance
         self.flickr = flickrapi.FlickrAPI(api_key=API_KEY, secret=API_SECRET, format='parsed-json')
 
@@ -246,6 +250,9 @@ class FlickrMirrorer(object):
         self._create_not_in_any_album_dir()
         self._mirror_collections()
 
+        self._print_statistics()
+
+    def _print_statistics(self):
         if self.print_statistics:
             print('New photos: %d' % self.new_photos)
             print('Deleted photos: %d' % self.deleted_photos)
@@ -711,6 +718,13 @@ class FlickrMirrorer(object):
             if ex.errno != errno.ENOENT:
                 sys.stderr.write('Error deleting temp file %s: %s\n' % (self.tmp_filename, ex.strerror))
 
+    def _sig_int_handler(self, signum, frame):
+        # User exited with CTRL+C
+        self._print_statistics()
+        # Print a newline to leave the console in a prettier state
+        print
+        sys.exit()
+
 
 def main():
     _check_flickrapi_version()
@@ -761,9 +775,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        # User exited with CTRL+C
-        # Print a newline to leave the console in a prettier state
-        print
+    main()
