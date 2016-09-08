@@ -186,11 +186,13 @@ class FlickrMirrorer(object):
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity, print_statistics, include_views):
+    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos):
         self.dest_dir = dest_dir
         self.verbosity = verbosity
         self.print_statistics = print_statistics
         self.include_views = include_views
+        self.ignore_photos = ignore_photos
+        self.ignore_videos = ignore_videos
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.old_albums_dir = os.path.join(self.dest_dir, 'Sets')
         self.albums_dir = os.path.join(self.dest_dir, 'Albums')
@@ -238,43 +240,57 @@ class FlickrMirrorer(object):
 
             self.flickr.get_access_token(six.u(verifier))
 
-        # Create destination directory
-        _ensure_dir_exists(self.dest_dir)
+        if not (self.ignore_photos and self.ignore_videos):
+            if self.ignore_photos:
+                sys.stdout.write('Photos will be ignored\n')
+            else:
+                sys.stdout.write('Photos will be mirrored\n')
+            if self.ignore_videos:
+                sys.stdout.write('Videos will be ignored\n')
+            else:
+                sys.stdout.write('Videos will be mirrored\n')
 
-        # Fetch photos
-        self._download_all_photos()
+            # Create destination directory
+            _ensure_dir_exists(self.dest_dir)
 
-        # Rename the albums directory from "Sets" to "Albums," if applicable.
-        # This is only needed to migrate people who used older versions of
-        # this script. It can be removed once everyone has been migrated.
-        # TODO: Remove this and the old_albums_dir variable at some point. It
-        # was added on 2014-12-14. Maybe remove it a year later?
-        if os.path.isdir(self.old_albums_dir):
-            if os.path.exists(self.albums_dir):
-                sys.stderr.write(
-                    'Error: Wanted to rename %s to %s, but the latter '
-                    'already exists. Please remove one of these.\n'
-                    % (self.old_albums_dir, self.albums_dir))
-                sys.exit(1)
-            os.rename(self.old_albums_dir, self.albums_dir)
+            # Fetch photos
+            self._download_all_photos()
 
-        # Create albums and collections
-        self._mirror_albums()
-        self._create_not_in_any_album_dir()
-        self._mirror_collections()
+            # Rename the albums directory from "Sets" to "Albums," if applicable.
+            # This is only needed to migrate people who used older versions of
+            # this script. It can be removed once everyone has been migrated.
+            # TODO: Remove this and the old_albums_dir variable at some point. It
+            # was added on 2014-12-14. Maybe remove it a year later?
+            if os.path.isdir(self.old_albums_dir):
+                if os.path.exists(self.albums_dir):
+                    sys.stderr.write(
+                        'Error: Wanted to rename %s to %s, but the latter '
+                        'already exists. Please remove one of these.\n'
+                        % (self.old_albums_dir, self.albums_dir))
+                    sys.exit(1)
+                os.rename(self.old_albums_dir, self.albums_dir)
 
-        if self.print_statistics:
-            print('New photos: %d' % self.new_photos)
-            print('Deleted photos: %d' % self.deleted_photos)
-            print('Modified photos: %d' % self.modified_photos)
-            print('Modified albums: %d' % self.modified_albums)
-            print('Modified collections: %d' % self.modified_collections)
+            # Create albums and collections
+            self._mirror_albums()
+            self._create_not_in_any_album_dir()
+            self._mirror_collections()
+
+            if self.print_statistics:
+                print('New photos: %d' % self.new_photos)
+                print('Deleted photos: %d' % self.deleted_photos)
+                print('Modified photos: %d' % self.modified_photos)
+                print('Modified albums: %d' % self.modified_albums)
+                print('Modified collections: %d' % self.modified_collections)
+        else:
+            sys.stdout.write(
+                'There is nothing to do because photos and videos are ignored. '
+                'Please choose to mirror at least photos or videos.\n')
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
         If you have a lot of photos then this function will take a while."""
 
-        self._verbose('Fetching all photos from photostream')
+        self._verbose('Fetching from photostream')
 
         _ensure_dir_exists(self.photostream_dir)
 
@@ -300,7 +316,9 @@ class FlickrMirrorer(object):
 
             photos = rsp['photos']['photo']
             for photo in photos:
-                if photo['media'] == 'photo':
+                if (self.ignore_photos and photo['media'] == 'video') or (
+                            self.ignore_videos and photo['media'] == 'photo') or not (
+                            self.ignore_photos or self.ignore_videos):
                     try:
                         new_files |= self._download_photo(photo)
                     except VideoDownloadError as e:
@@ -317,7 +335,7 @@ class FlickrMirrorer(object):
             sys.stderr.write("Error: Some files failed to download:\n")
             for error in download_errors:
                 sys.stderr.write("  " + str(error) + "\n")
-            sys.exit(1)
+            # sys.exit(1)
 
         # Error out if we didn't fetch any photos
         if not new_files:
@@ -369,12 +387,13 @@ class FlickrMirrorer(object):
                 sys.stderr.write(
                     'Error: Failed to fetch %s: %s: %s'
                     % (url, request.status_code, request.reason))
-                sys.exit(1)
-            with open(self.tmp_filename, 'wb') as tmp_file:
-                # Use 1 MiB chunks.
-                for chunk in request.iter_content(2**20):
-                    tmp_file.write(chunk)
-            os.rename(self.tmp_filename, photo_filename)
+                # sys.exit(1)
+            else:
+                with open(self.tmp_filename, 'wb') as tmp_file:
+                    # Use 1 MiB chunks.
+                    for chunk in request.iter_content(2**20):
+                        tmp_file.write(chunk)
+                os.rename(self.tmp_filename, photo_filename)
         else:
             self._verbose('Skipping %s because we already have it'
                           % photo_basename)
@@ -430,7 +449,9 @@ class FlickrMirrorer(object):
             _validate_json_response(rsp)
 
         for photo in rsp['photoset']['photo']:
-            if photo['media'] == 'photo':
+            if (self.ignore_photos and photo['media'] == 'video') or (
+                        self.ignore_videos and photo['media'] == 'photo') or not (
+                        self.ignore_photos or self.ignore_videos):
                 photos += [photo]
 
         # Include list of photo IDs in metadata, so we can tell if photos
@@ -521,7 +542,9 @@ class FlickrMirrorer(object):
             _validate_json_response(rsp)
             photos = []
             for photo in rsp['photos']['photo']:
-                if photo['media'] == 'photo':
+                if (self.ignore_photos and photo['media'] == 'video') or (
+                            self.ignore_videos and photo['media'] == 'photo') or not (
+                            self.ignore_photos or self.ignore_videos):
                     photos += [photo]
             if not photos:
                 # We've reached the end of the photostream.  Stop looping.
@@ -757,10 +780,20 @@ def main():
         dest='include_views', default=True, const=False,
         help='do not include views-counter in metadata')
 
+    parser.add_argument(
+        '--ignore-photos', action='store_const',
+        dest='ignore_photos', default=False, const=True,
+        help='do not mirror photos')
+
+    parser.add_argument(
+        '--ignore-videos', action='store_const',
+        dest='ignore_videos', default=False, const=True,
+        help='do not mirror videos')
+
     args = parser.parse_args()
 
     mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                              args.statistics, args.include_views)
+                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos)
     mirrorer.run()
 
 
