@@ -51,6 +51,7 @@ import sys
 import time
 import webbrowser
 from six.moves import urllib
+import ConfigParser
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -64,9 +65,6 @@ try:
 except ImportError:
     sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
     sys.exit(1)
-
-API_KEY = '9c5c431017e712bde232a2f142703bb2'
-API_SECRET = '7c024f6e7a36fc03'
 
 PLEASE_GRANT_AUTHORIZATION_MSG = """
 Please authorize Flickr Mirrorer to read your photos, titles, tags, etc.
@@ -210,8 +208,17 @@ class FlickrMirrorer(object):
         # Register a SIGINT (Ctrl-C) handler
         signal.signal(signal.SIGINT, self._sig_int_handler)
 
+        config_parser = ConfigParser.RawConfigParser()
+        config_file_path = r'config.ini'
+        config_parser.read(config_file_path)
+        api_key = config_parser.get('Flickr App', 'API_KEY')
+        api_secret = config_parser.get('Flickr App', 'API_SECRET')
+
+        # print('Flickr APP Key: %s' % api_key)
+        # print('Flickr APP Secret: %s' % api_secret)
+
         # Create flickrapi instance
-        self.flickr = flickrapi.FlickrAPI(api_key=API_KEY, secret=API_SECRET, format='parsed-json')
+        self.flickr = flickrapi.FlickrAPI(api_key=api_key, secret=api_secret, format='parsed-json')
 
     def run(self):
         try:
