@@ -455,11 +455,11 @@ class FlickrMirrorer(object):
             )
             _validate_json_response(rsp)
 
-        for photo in rsp['photoset']['photo']:
-            if (self.ignore_photos and photo['media'] == 'video') or (
-                        self.ignore_videos and photo['media'] == 'photo') or not (
-                        self.ignore_photos or self.ignore_videos):
-                photos += [photo]
+            for photo in rsp['photoset']['photo']:
+                if (self.ignore_photos and photo['media'] == 'video') or (
+                            self.ignore_videos and photo['media'] == 'photo') or not (
+                            self.ignore_photos or self.ignore_videos):
+                    photos += [photo]
 
         # Include list of photo IDs in metadata, so we can tell if photos
         # were added or removed from the album when mirroring in the future.
