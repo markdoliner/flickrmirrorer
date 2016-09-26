@@ -330,7 +330,36 @@ class FlickrMirrorer(object):
 
         # Download photo if photo doesn't exist, if metadata doesn't exist or if
         # metadata has changed
-        should_download_photo = not os.path.exists(photo_filename)
+        should_download_photo = False
+        if photo['media'] == 'video':
+            # Try to correct the file extension for manually downloaded video files metadata
+            # (from .mov to what that actually is)
+            video_files = []
+            for i in os.listdir(self.photostream_dir):
+                if os.path.isfile(os.path.join(self.photostream_dir, i)) and photo['id'] in i and not i.endswith(
+                        'metadata'):
+                    video_files.append(i)
+            print("For photo %s, these video files where found: %s" % (photo['id'], video_files))
+            assert len(video_files) <= 1
+            if len(video_files) > 0:
+                new_photo_basename = video_files[0]
+                if photo_basename != new_photo_basename:
+                    print ('Photo changed from %s to %s' % (photo_basename, new_photo_basename))
+                    photo_filename = os.path.join(self.photostream_dir, new_photo_basename)
+                    photo_basename = new_photo_basename
+                new_metadata_basename = '%s.metadata' % video_files[0]
+                new_metadata_filename = os.path.join(self.photostream_dir, new_metadata_basename)
+                if metadata_filename != new_metadata_filename:
+                    if os.path.isfile(metadata_filename):
+                        print('Rename %s to %s' % (metadata_filename, new_metadata_filename))
+                        os.rename(metadata_filename, new_metadata_filename)
+                    print ('Metadata changed from %s to %s' % (metadata_basename, new_metadata_basename))
+                    metadata_filename = new_metadata_filename
+                    metadata_basename = new_metadata_basename
+            else:
+                should_download_photo = True
+
+        should_download_photo |= not os.path.exists(photo_filename)
         should_download_photo |= not os.path.exists(metadata_filename)
         should_download_photo |= self._is_file_different(metadata_filename, photo)
 
@@ -344,7 +373,7 @@ class FlickrMirrorer(object):
             request = requests.get(url, stream=True)
             if not request.ok:
                 sys.stderr.write(
-                    'Error: Failed to fetch %s: %s: %s'
+                    'Error: Failed to fetch %s: %s: %s\n'
                     % (url, request.status_code, request.reason))
                 sys.exit(1)
             with open(self.tmp_filename, 'wb') as tmp_file:
@@ -576,8 +605,11 @@ class FlickrMirrorer(object):
                 # For some videos the above URL doesn't work, and the only way I know how to
                 # get those is to download them manually using a logged in web browser. Just
                 # tell the user that. /johan.walles@gmail.com - 2016feb12
-                raise VideoDownloadError('Manual download required: '
-                                         'https://www.flickr.com/video_download.gne?id=%(id)s' % photo)
+                sys.stderr.write(
+                    'Manual download required: https://www.flickr.com/video_download.gne?id=%s\n' % photo['id'])
+                # Video format is unknown until we manually download the file
+                # We use .mov and try to correct it in metadata files, after we have the manually downloaded files
+                return '%s.mov' % (photo['id'])
 
             return os.path.basename(urllib.parse.urlparse(head.url).path)
 
@@ -623,10 +655,11 @@ class FlickrMirrorer(object):
         Args:
             timestamp (datetime.datetime)
         """
-        timestamp_since_epoch = time.mktime(timestamp.timetuple())
-        if timestamp_since_epoch != os.path.getmtime(filename):
-            os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
-            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
+        if os.path.isfile(filename):
+            timestamp_since_epoch = time.mktime(timestamp.timetuple())
+            if timestamp_since_epoch != os.path.getmtime(filename):
+                os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+                self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
     def _write_json_if_different(self, filename, data):
         """Write the given data to the specified filename, but only if it's
