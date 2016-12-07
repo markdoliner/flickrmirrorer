@@ -162,13 +162,14 @@ class FlickrMirrorer(object):
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos):
+    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos, clean):
         self.dest_dir = dest_dir
         self.verbosity = verbosity
         self.print_statistics = print_statistics
         self.include_views = include_views
         self.ignore_photos = ignore_photos
         self.ignore_videos = ignore_videos
+        self.clean = clean
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.albums_dir = os.path.join(self.dest_dir, 'Albums')
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
@@ -215,6 +216,11 @@ class FlickrMirrorer(object):
             verifier = getattr(__builtins__, 'raw_input', input)(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
 
             self.flickr.get_access_token(six.u(verifier))
+
+        if self.clean:
+            sys.stdout.write('Your Flickr backup will be cleaned according to what is now on Flickr\n');
+        else:
+            sys.stdout.write('Your Flickr backup will not be cleaned according to what is now on Flickr\n');
 
         if self.ignore_photos and self.ignore_videos:
             sys.stderr.write(
@@ -684,12 +690,16 @@ class FlickrMirrorer(object):
         return True
 
     def _delete_unknown_files(self, rootdir, known, knowntype):
-        """Delete all files and directories in rootdir except the
+        """If the clean option is used, delete all files and directories in rootdir except the
         known files. knowntype is only used for the log message.
         Returns the number of deleted entries."""
 
         # return early if the rootdir doesn't exist
         if not os.path.isdir(rootdir):
+            return 0
+
+        # delete only if the clean option is active
+        if not self.clean:
             return 0
 
         delete_count = 0
@@ -776,10 +786,16 @@ def main():
         dest='ignore_videos', default=False, const=True,
         help='do not mirror videos')
 
+    parser.add_argument(
+        '--clean', action='store_const',
+        dest='clean', default=False, const=True,
+        help='delete everything that is no longer in Flickr. '
+             'Warning: if you choose to ignore photos or videos, they will be deleted!')
+
     args = parser.parse_args()
 
     mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos)
+                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos, args.clean)
     mirrorer.run()
 
 
