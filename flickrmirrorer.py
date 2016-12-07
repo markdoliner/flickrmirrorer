@@ -300,9 +300,9 @@ class FlickrMirrorer(object):
 
     def _print_statistics(self):
         if self.print_statistics:
-            print('New photos: %d' % self.new_photos)
-            print('Deleted photos: %d' % self.deleted_photos)
-            print('Modified photos: %d' % self.modified_photos)
+            print('New photos / videos: %d' % self.new_photos)
+            print('Deleted photos / videos: %d' % self.deleted_photos)
+            print('Modified photos / videos: %d' % self.modified_photos)
             print('Modified albums: %d' % self.modified_albums)
             print('Modified collections: %d' % self.modified_collections)
 
