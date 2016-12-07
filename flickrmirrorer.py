@@ -175,6 +175,28 @@ class FlickrMirrorer(object):
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
 
+        # Timestamp for the moment in time from when to get the uploaded photos
+        timestamp_file_name = 'timestamp'
+        if os.path.isfile(timestamp_file_name):
+            with open(timestamp_file_name) as f:
+                lines = f.readlines()
+            if len(lines) > 0:
+                self.min_upload_date = time.mktime(
+                    datetime.datetime.strptime(lines[0], "%Y-%m-%d %H:%M:%S").timetuple())
+            else:
+                self.min_upload_date = 1
+        else:
+            self.min_upload_date = 1
+
+        sys.stdout.write('Processing photos and videos that were uploaded after %s\n' % datetime.datetime.fromtimestamp(
+            int(self.min_upload_date)).strftime('%Y-%m-%d %H:%M:%S'))
+
+        self.new_min_upload_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.new_min_upload_date = time.mktime(
+            datetime.datetime.strptime(self.new_min_upload_date, "%Y-%m-%d %H:%M:%S").timetuple())
+        sys.stdout.write('Flickr Mirrorer started at %s\n' % datetime.datetime.fromtimestamp(
+            int(self.new_min_upload_date)).strftime('%Y-%m-%d %H:%M:%S'))
+
         # Statistics
         self.deleted_photos = 0
         self.modified_photos = 0
@@ -241,6 +263,16 @@ class FlickrMirrorer(object):
 
         self._print_statistics()
 
+        # Write the timestamp file. We assume at this point the sync process was done correctly.
+        timestamp_file_name = 'timestamp'
+        with open(timestamp_file_name, 'w') as timestamp_file:
+            timestamp_file.write(
+                '{0}'.format(
+                    datetime.datetime.fromtimestamp(int(self.new_min_upload_date)).strftime('%Y-%m-%d %H:%M:%S')))
+        sys.stdout.write(
+            'The next Flickr Mirrorer will start from upload time %s\n' % datetime.datetime.fromtimestamp(
+                int(self.new_min_upload_date)).strftime('%Y-%m-%d %H:%M:%S'))
+
     def _print_statistics(self):
         if not self.print_statistics:
             return
@@ -272,6 +304,7 @@ class FlickrMirrorer(object):
         while True:
             rsp = self.flickr.people_getPhotos(
                 user_id='me',
+                min_upload_date=self.min_upload_date,
                 extras=metadata_fields,
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
@@ -423,6 +456,7 @@ class FlickrMirrorer(object):
             # Fetch photos in this album
             rsp = self.flickr.photosets_getPhotos(
                 photoset_id=album['id'],
+                min_upload_date=self.min_upload_date,
                 extras='original_format,media',
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
@@ -500,6 +534,7 @@ class FlickrMirrorer(object):
         while True:
             # Fetch list of photos that aren't in any album
             rsp = self.flickr.photos_getNotInSet(
+                min_upload_date=self.min_upload_date,
                 extras='original_format,media',
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
