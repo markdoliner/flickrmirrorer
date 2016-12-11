@@ -206,7 +206,7 @@ class FlickrMirrorer(object):
                 lines = f.readlines()
             if len(lines) > 0:
                 self.min_upload_date = time.mktime(
-                    datetime.datetime.strptime(lines[0], "%Y-%m-%d %H:%M:%S").timetuple())
+                    datetime.datetime.strptime(lines[0].strip(), "%Y-%m-%d %H:%M:%S").timetuple())
             else:
                 self.min_upload_date = 1
         else:
