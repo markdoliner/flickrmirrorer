@@ -377,7 +377,7 @@ class FlickrMirrorer(object):
                     except VideoDownloadError as e:
                         download_errors.append(e)
 
-            if rsp['photos']['pages'] == current_page:
+            if len(photos) == 0 or rsp['photos']['pages'] == current_page:
                 # We've reached the end of the photostream.  Stop looping.
                 break
 
@@ -392,9 +392,8 @@ class FlickrMirrorer(object):
 
         # Error out if we didn't fetch any photos
         if not new_files:
-            sys.stderr.write('Error: The Flickr API returned an empty list of photos. '
-                             'Bailing out without deleting any local copies in case this is an anomaly.\n')
-            sys.exit(1)
+            sys.stdout.write('Warning: The Flickr API returned no photos / videos.\n')
+            # sys.exit(1)
 
         # Divide by 2 because we want to ignore the photo metadata files
         # for the purposes of our statistics.
