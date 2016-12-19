@@ -293,7 +293,7 @@ class FlickrMirrorer(object):
             _ensure_dir_exists(self.dest_dir)
 
             # Fetch photos
-            self._download_all_photos()
+            all_photos_ids = self._download_all_photos()
 
             # Rename the albums directory from "Sets" to "Albums," if applicable.
             # This is only needed to migrate people who used older versions of
@@ -310,7 +310,7 @@ class FlickrMirrorer(object):
                 os.rename(self.old_albums_dir, self.albums_dir)
 
             # Create albums and collections
-            self._mirror_albums()
+            self._mirror_albums(all_photos_ids)
             self._create_not_in_any_album_dir()
             self._mirror_collections()
 
@@ -368,7 +368,9 @@ class FlickrMirrorer(object):
             _validate_json_response(rsp)
 
             photos = rsp['photos']['photo']
+            all_photos_ids = []
             for photo in photos:
+                all_photos_ids += [photo['id']]
                 if (self.ignore_photos and photo['media'] == 'video') or (
                             self.ignore_videos and photo['media'] == 'photo') or not (
                             self.ignore_photos or self.ignore_videos):
@@ -398,6 +400,7 @@ class FlickrMirrorer(object):
         # Divide by 2 because we want to ignore the photo metadata files
         # for the purposes of our statistics.
         self.deleted_photos = self._delete_unknown_files(self.photostream_dir, new_files, 'file') / 2
+        return all_photos_ids
 
     def _download_photo(self, photo):
         """Fetch and save a media item (photo or video) and the metadata
@@ -464,7 +467,7 @@ class FlickrMirrorer(object):
 
         return {photo_basename, metadata_basename}
 
-    def _mirror_albums(self):
+    def _mirror_albums(self, all_photos_ids):
         """Create a directory for each album, and create symlinks to the
         files in the photostream."""
         self._verbose('Mirroring albums locally...')
@@ -476,11 +479,11 @@ class FlickrMirrorer(object):
         _validate_json_response(rsp)
         if rsp['photosets']:
             for album in rsp['photosets']['photoset']:
-                album_dirs |= self._mirror_album(album)
+                album_dirs |= self._mirror_album(album, all_photos_ids)
 
         self._delete_unknown_files(self.albums_dir, album_dirs, 'album')
 
-    def _mirror_album(self, album):
+    def _mirror_album(self, album, all_photos_ids):
         self._verbose('Mirroring album %s' % album['title']['_content'])
 
         album_basename = self._get_album_dirname(album['id'], album['title']['_content'])
@@ -494,7 +497,6 @@ class FlickrMirrorer(object):
             # Fetch photos in this album
             rsp = self.flickr.photosets_getPhotos(
                 photoset_id=album['id'],
-                min_upload_date=self.min_upload_date,
                 extras='original_format,media',
                 per_page=NUM_PHOTOS_PER_BATCH,
                 page=current_page,
@@ -502,9 +504,9 @@ class FlickrMirrorer(object):
             _validate_json_response(rsp)
 
             for photo in rsp['photoset']['photo']:
-                if (self.ignore_photos and photo['media'] == 'video') or (
+                if photo['id'] in all_photos_ids and ((self.ignore_photos and photo['media'] == 'video') or (
                             self.ignore_videos and photo['media'] == 'photo') or not (
-                            self.ignore_photos or self.ignore_videos):
+                            self.ignore_photos or self.ignore_videos)):
                     photos += [photo]
 
         # Include list of photo IDs in metadata, so we can tell if photos
