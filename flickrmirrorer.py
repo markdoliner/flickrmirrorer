@@ -203,10 +203,8 @@ class FlickrMirrorer(object):
 
             # Use input on python 3 and newer. Use raw_input for
             # backward compatability with older python.
-            try:
-                verifier = raw_input(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
-            except NameError:
-                verifier = input(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
+
+            verifier = getattr(__builtins__, 'raw_input', input)(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
 
             self.flickr.get_access_token(six.u(verifier))
 
