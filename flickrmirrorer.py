@@ -14,6 +14,7 @@
 #   Mark Doliner, 2012-2016
 #   Mattias Holmlund, 2013
 #   Steve Cassidy, 2016
+#   Victor Engmark, 2016
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
