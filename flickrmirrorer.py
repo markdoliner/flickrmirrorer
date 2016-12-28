@@ -10,6 +10,7 @@
 # "Simplified BSD License" or "FreeBSD License"):
 #
 # Copyright (c)
+#   Ciprian Radu, 2016
 #   Johan Walles, 2016
 #   Mark Doliner, 2012-2016
 #   Mattias Holmlund, 2013
