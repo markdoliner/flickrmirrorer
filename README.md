@@ -28,6 +28,15 @@ to work on Microsoft Windows with minor changes.
 e.x. ./flickrmirrorer.py /mnt/backup/flickr/
 </pre>
 
+Features
+========
+The script allows you to mirror only photos or only videos. See the ```--ignore-videos``` and ```--ignore-photos``` command line options.
+
+Your local backup can be cleaned automatically, by deleting what is no longer in Flickr. This option is disabled by default. See the ```--clean``` command line option.
+
+The mirroring process is time-stamped. This allows FlicrkMirrorer to resume the process from the previously reached moment in time. (It makes use of Flickr's API upload date parameter.) This approach is particularly useful when having a large Flickr photostream. The time-stamp is stored in a local file, which you can manually modify (or even delete), if needed.
+
+The script outputs statistics that summarize its work progress. You can enable this option using ```-s``` from the command line. Statistics are also displayed in case the script is interrupted.
 
 Running via Cron
 ================
