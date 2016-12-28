@@ -40,6 +40,8 @@ Your local backup can be cleaned automatically, so that files that were
 deleted in Flickr are deleted locally. Deletion is disabled by default. See
 the `--delete-unknown` command line option.
 
+The mirroring process is time-stamped. This allows FlicrkMirrorer to resume the process from the previously reached moment in time. (It makes use of Flickr's API upload date parameter.) This approach is particularly useful when having a large Flickr photostream. The time-stamp is stored in a local file, which you can manually modify (or even delete), if needed.
+
 The script displays a summary of its actions if `--statistics` is passed on
 the command line.
 
