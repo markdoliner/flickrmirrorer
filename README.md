@@ -32,7 +32,7 @@ e.x. ./flickrmirrorer.py /mnt/backup/flickr/
 Running via Cron
 ================
 Running this script regularly via cron is a good way to keep your backup
-up to date.  For example, create the file /etc/cron.d/flickr_backup
+up to date. For example, create the file /etc/cron.d/flickr_backup
 containing the following:
 
 <pre>
@@ -43,9 +43,9 @@ containing the following:
 
 If you run the cronjob as a user other than yourself you may
 need to take additional steps to make sure the cron user is able to
-authenticate.  The steps are something like this:
+authenticate. The steps are something like this:
 
-1. Run the script as yourself the first time around.  It should pop open
+1. Run the script as yourself the first time around. It should pop open
    your web browser and request permission.
 2. After granting permission an authorization token is stored in
    ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token

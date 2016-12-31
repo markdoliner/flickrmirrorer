@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # A small command-line python script that creates a local backup of your
-# Flickr data.  It mirrors images, titles, description, tags, albums and
+# Flickr data. It mirrors images, titles, description, tags, albums and
 # collections.
 #
 # Available at https://github.com/markdoliner/flickrmirrorer
@@ -62,7 +62,7 @@ except ImportError:
 try:
     import flickrapi
 except ImportError:
-    sys.stderr.write('Error importing flickrapi python library.  Is it installed?\n')
+    sys.stderr.write('Error importing flickrapi python library. Is it installed?\n')
     sys.exit(1)
 
 API_KEY = '9c5c431017e712bde232a2f142703bb2'
@@ -277,7 +277,7 @@ class FlickrMirrorer(object):
                     download_errors.append(e)
 
             if rsp['photos']['pages'] == current_page:
-                # We've reached the end of the photostream.  Stop looping.
+                # We've reached the end of the photostream. Stop looping.
                 break
 
             current_page += 1
@@ -313,12 +313,12 @@ class FlickrMirrorer(object):
 
         # Sanity check
         if os.path.isdir(photo_filename) or os.path.islink(photo_filename):
-            sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % photo_filename)
+            sys.stderr.write('Error: %s exists but is not a file. This is not allowed.\n' % photo_filename)
             sys.exit(1)
 
         # Sanity check
         if os.path.isdir(metadata_filename) or os.path.islink(metadata_filename):
-            sys.stderr.write('Error: %s exists but is not a file.  This is not allowed.\n' % metadata_filename)
+            sys.stderr.write('Error: %s exists but is not a file. This is not allowed.\n' % metadata_filename)
             sys.exit(1)
 
         # Download photo if photo doesn't exist, if metadata doesn't exist or if
@@ -489,7 +489,7 @@ class FlickrMirrorer(object):
             _validate_json_response(rsp)
             photos = rsp['photos']['photo']
             if not photos:
-                # We've reached the end of the photostream.  Stop looping.
+                # We've reached the end of the photostream. Stop looping.
                 break
 
             for photo in photos:
@@ -590,7 +590,7 @@ class FlickrMirrorer(object):
     def _get_album_dirname(id_, title):
         safe_title = urllib.parse.quote(title.encode('utf-8'), " ',")
         # TODO: We use the ID in the name to avoid conflicts when there are
-        #       two albums with the same name.  Is there a better way to
+        #       two albums with the same name. Is there a better way to
         #       handle that?  Maybe by using the date of the oldest picture
         #       instead?
         return '%s - %s' % (safe_title, id_)
@@ -647,7 +647,7 @@ class FlickrMirrorer(object):
 
     def _delete_unknown_files(self, rootdir, known, knowntype):
         """Delete all files and directories in rootdir except the
-        known files.  knowntype if only used for the log message.
+        known files. knowntype if only used for the log message.
         Returns the number of deleted entries."""
 
         # return early if the rootdir doesn't exist
