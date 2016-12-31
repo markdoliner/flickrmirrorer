@@ -647,7 +647,7 @@ class FlickrMirrorer(object):
 
     def _delete_unknown_files(self, rootdir, known, knowntype):
         """Delete all files and directories in rootdir except the
-        known files. knowntype if only used for the log message.
+        known files. knowntype is only used for the log message.
         Returns the number of deleted entries."""
 
         # return early if the rootdir doesn't exist
