@@ -217,14 +217,8 @@ class FlickrMirrorer(object):
                 'Please choose to mirror at least photos or videos.\n')
             return
 
-        if self.ignore_photos:
-            sys.stdout.write('Photos will be ignored\n')
-        else:
-            sys.stdout.write('Photos will be mirrored\n')
-        if self.ignore_videos:
-            sys.stdout.write('Videos will be ignored\n')
-        else:
-            sys.stdout.write('Videos will be mirrored\n')
+        sys.stdout.write('Photos will be %s\n' % ('ignored' if self.ignore_photos else 'mirrored'))
+        sys.stdout.write('Videos will be %s\n' % ('ignored' if self.ignore_videos else 'mirrored'))
 
         # Create destination directory
         _ensure_dir_exists(self.dest_dir)
