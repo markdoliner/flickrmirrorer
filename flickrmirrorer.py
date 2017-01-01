@@ -776,4 +776,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # User exited with CTRL+C
+        # Print a newline to leave the console in a prettier state
+        print
