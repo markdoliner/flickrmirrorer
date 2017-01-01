@@ -300,7 +300,7 @@ class FlickrMirrorer(object):
             sys.stderr.write("Error: Some files failed to download:\n")
             for error in download_errors:
                 sys.stderr.write("  " + str(error) + "\n")
-            # sys.exit(1)
+            sys.exit(1)
 
         # Error out if we didn't fetch any photos
         if not new_files:
@@ -352,13 +352,12 @@ class FlickrMirrorer(object):
                 sys.stderr.write(
                     'Error: Failed to fetch %s: %s: %s'
                     % (url, request.status_code, request.reason))
-                # sys.exit(1)
-            else:
-                with open(self.tmp_filename, 'wb') as tmp_file:
-                    # Use 1 MiB chunks.
-                    for chunk in request.iter_content(2**20):
-                        tmp_file.write(chunk)
-                os.rename(self.tmp_filename, photo_filename)
+                sys.exit(1)
+            with open(self.tmp_filename, 'wb') as tmp_file:
+                # Use 1 MiB chunks.
+                for chunk in request.iter_content(2**20):
+                    tmp_file.write(chunk)
+            os.rename(self.tmp_filename, photo_filename)
         else:
             self._verbose('Skipping %s because we already have it'
                           % photo_basename)

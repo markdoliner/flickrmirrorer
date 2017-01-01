@@ -100,6 +100,10 @@ Run [`py.test`](http://pytest.org/).
 
 TODO
 ====
+* Handle download errors better:
+  * Add retry logic.
+  * Continue trying to download other photos.
+  * Stop running only if there are many download errors.
 * Mirror comments
 * Store order of photos in photostream
 * Store order of albums in collections
