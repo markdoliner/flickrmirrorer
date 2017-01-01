@@ -211,51 +211,52 @@ class FlickrMirrorer(object):
 
             self.flickr.get_access_token(six.u(verifier))
 
-        if not (self.ignore_photos and self.ignore_videos):
-            if self.ignore_photos:
-                sys.stdout.write('Photos will be ignored\n')
-            else:
-                sys.stdout.write('Photos will be mirrored\n')
-            if self.ignore_videos:
-                sys.stdout.write('Videos will be ignored\n')
-            else:
-                sys.stdout.write('Videos will be mirrored\n')
-
-            # Create destination directory
-            _ensure_dir_exists(self.dest_dir)
-
-            # Fetch photos
-            self._download_all_photos()
-
-            # Rename the albums directory from "Sets" to "Albums," if applicable.
-            # This is only needed to migrate people who used older versions of
-            # this script. It can be removed once everyone has been migrated.
-            # TODO: Remove this and the old_albums_dir variable at some point. It
-            # was added on 2014-12-14. Maybe remove it a year later?
-            if os.path.isdir(self.old_albums_dir):
-                if os.path.exists(self.albums_dir):
-                    sys.stderr.write(
-                        'Error: Wanted to rename %s to %s, but the latter '
-                        'already exists. Please remove one of these.\n'
-                        % (self.old_albums_dir, self.albums_dir))
-                    sys.exit(1)
-                os.rename(self.old_albums_dir, self.albums_dir)
-
-            # Create albums and collections
-            self._mirror_albums()
-            self._create_not_in_any_album_dir()
-            self._mirror_collections()
-
-            if self.print_statistics:
-                print('New photos: %d' % self.new_photos)
-                print('Deleted photos: %d' % self.deleted_photos)
-                print('Modified photos: %d' % self.modified_photos)
-                print('Modified albums: %d' % self.modified_albums)
-                print('Modified collections: %d' % self.modified_collections)
-        else:
+        if self.ignore_photos and self.ignore_videos:
             sys.stdout.write(
                 'There is nothing to do because photos and videos are ignored. '
                 'Please choose to mirror at least photos or videos.\n')
+            return
+
+        if self.ignore_photos:
+            sys.stdout.write('Photos will be ignored\n')
+        else:
+            sys.stdout.write('Photos will be mirrored\n')
+        if self.ignore_videos:
+            sys.stdout.write('Videos will be ignored\n')
+        else:
+            sys.stdout.write('Videos will be mirrored\n')
+
+        # Create destination directory
+        _ensure_dir_exists(self.dest_dir)
+
+        # Fetch photos
+        self._download_all_photos()
+
+        # Rename the albums directory from "Sets" to "Albums," if applicable.
+        # This is only needed to migrate people who used older versions of
+        # this script. It can be removed once everyone has been migrated.
+        # TODO: Remove this and the old_albums_dir variable at some point. It
+        # was added on 2014-12-14. Maybe remove it a year later?
+        if os.path.isdir(self.old_albums_dir):
+            if os.path.exists(self.albums_dir):
+                sys.stderr.write(
+                    'Error: Wanted to rename %s to %s, but the latter '
+                    'already exists. Please remove one of these.\n'
+                    % (self.old_albums_dir, self.albums_dir))
+                sys.exit(1)
+            os.rename(self.old_albums_dir, self.albums_dir)
+
+        # Create albums and collections
+        self._mirror_albums()
+        self._create_not_in_any_album_dir()
+        self._mirror_collections()
+
+        if self.print_statistics:
+            print('New photos: %d' % self.new_photos)
+            print('Deleted photos: %d' % self.deleted_photos)
+            print('Modified photos: %d' % self.modified_photos)
+            print('Modified albums: %d' % self.modified_albums)
+            print('Modified collections: %d' % self.modified_collections)
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
