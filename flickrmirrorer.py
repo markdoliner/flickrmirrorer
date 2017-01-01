@@ -38,7 +38,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import signal
 import argparse
 import datetime
 import dateutil.parser
@@ -48,6 +47,7 @@ import os
 import pkg_resources
 import requests
 import shutil
+import signal
 import six
 import sys
 import time
