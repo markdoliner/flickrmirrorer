@@ -1,6 +1,5 @@
 /env/
 /.cache/
+/.idea/
 *.pyc
-
 .DS_Store
-.idea/
