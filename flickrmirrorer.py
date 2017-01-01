@@ -253,12 +253,13 @@ class FlickrMirrorer(object):
         self._print_statistics()
 
     def _print_statistics(self):
-        if self.print_statistics:
-            print('New photos: %d' % self.new_photos)
-            print('Deleted photos: %d' % self.deleted_photos)
-            print('Modified photos: %d' % self.modified_photos)
-            print('Modified albums: %d' % self.modified_albums)
-            print('Modified collections: %d' % self.modified_collections)
+        if not self.print_statistics:
+            return
+        print('New photos: %d' % self.new_photos)
+        print('Deleted photos: %d' % self.deleted_photos)
+        print('Modified photos: %d' % self.modified_photos)
+        print('Modified albums: %d' % self.modified_albums)
+        print('Modified collections: %d' % self.modified_collections)
 
     def _download_all_photos(self):
         """Download all our pictures and metadata.
