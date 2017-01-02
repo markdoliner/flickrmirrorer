@@ -721,9 +721,8 @@ class FlickrMirrorer(object):
 
     def _sig_int_handler(self, signum, frame):
         # User exited with CTRL+C
+        print('')
         self._print_statistics()
-        # Print a newline to leave the console in a prettier state
-        print
         sys.exit()
 
 
@@ -780,5 +779,5 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         # User exited with CTRL+C
-        # Print a newline to leave the console in a prettier state
-        print
+        # Print a newline to leave the console in a prettier state.
+        print('')
