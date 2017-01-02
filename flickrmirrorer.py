@@ -298,7 +298,7 @@ class FlickrMirrorer(object):
                     except VideoDownloadError as e:
                         download_errors.append(e)
 
-            if rsp['photos']['pages'] == current_page:
+            if current_page >= rsp['photos']['pages']:
                 # We've reached the end of the photostream. Stop looping.
                 break
 
