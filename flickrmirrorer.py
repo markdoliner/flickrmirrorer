@@ -169,7 +169,6 @@ class FlickrMirrorer(object):
         self.ignore_photos = ignore_photos
         self.ignore_videos = ignore_videos
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
-        self.old_albums_dir = os.path.join(self.dest_dir, 'Sets')
         self.albums_dir = os.path.join(self.dest_dir, 'Albums')
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
         self.tmp_filename = os.path.join(self.dest_dir, 'tmp')
@@ -230,20 +229,6 @@ class FlickrMirrorer(object):
 
         # Fetch photos
         self._download_all_photos()
-
-        # Rename the albums directory from "Sets" to "Albums," if applicable.
-        # This is only needed to migrate people who used older versions of
-        # this script. It can be removed once everyone has been migrated.
-        # TODO: Remove this and the old_albums_dir variable at some point. It
-        # was added on 2014-12-14. Maybe remove it a year later?
-        if os.path.isdir(self.old_albums_dir):
-            if os.path.exists(self.albums_dir):
-                sys.stderr.write(
-                    'Error: Wanted to rename %s to %s, but the latter '
-                    'already exists. Please remove one of these.\n'
-                    % (self.old_albums_dir, self.albums_dir))
-                sys.exit(1)
-            os.rename(self.old_albums_dir, self.albums_dir)
 
         # Create albums and collections
         self._mirror_albums()
