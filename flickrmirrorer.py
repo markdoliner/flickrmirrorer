@@ -42,6 +42,7 @@ import argparse
 import datetime
 import dateutil.parser
 import errno
+import glob
 import math
 import os
 import pkg_resources
@@ -291,9 +292,13 @@ class FlickrMirrorer(object):
 
         # Error out if there were exceptions
         if download_errors:
-            sys.stderr.write("Error: Some files failed to download:\n")
+            sys.stderr.write(
+                'The Flickr API does not allow downloading original video files.\n'
+                'Please save the files listed below to the photostream directory.\n'
+                'Note: You must be logged into your Flickr account in order to download '
+                'your full resolution videos!\n')
             for error in download_errors:
-                sys.stderr.write("  " + str(error) + "\n")
+                sys.stderr.write('  %s\n' % error)
             sys.exit(1)
 
         # Error out if we didn't fetch any photos
@@ -328,31 +333,47 @@ class FlickrMirrorer(object):
             sys.stderr.write('Error: %s exists but is not a file. This is not allowed.\n' % metadata_filename)
             sys.exit(1)
 
-        # Download photo if photo doesn't exist, if metadata doesn't exist or if
-        # metadata has changed
+        # Download photo if photo or metadata files don't exist locally,
+        # or if the metadata file exists and the lastupdate timestamp
+        # has changed.
         should_download_photo = not os.path.exists(photo_filename)
         should_download_photo |= not os.path.exists(metadata_filename)
-        should_download_photo |= self._is_file_different(metadata_filename, photo)
+        if not should_download_photo:
+            # Download photo if lastupdate timestamp has changed.
+            try:
+                with open(metadata_filename) as json_file:
+                    metadata = json.load(json_file)
+            except IOError as ex:
+                sys.stderr.write('Error reading %s: %s\n' % (filename, ex))
+                sys.exit(1)
+            should_download_photo |= metadata['lastupdate'] != photo['lastupdate']
 
         if should_download_photo:
+            if not os.path.exists(photo_filename):
+                self.new_photos += 1
+            else:
+                self.modified_photos += 1
+
+            self._progress('Fetching %s' % photo_basename)
             request = requests.get(url, stream=True)
             if not request.ok:
+                if photo['media'] == 'video':
+                    raise VideoDownloadError(
+                        'Manual download required (video may have changed): '
+                        'https://www.flickr.com/video_download.gne?id=%s' % photo['id'])
+
                 sys.stderr.write(
                     'Error: Failed to fetch %s: %s: %s\n'
                     % (url, request.status_code, request.reason))
-                # sys.exit(1)
-            else:
-                if not os.path.exists(photo_filename):
-                    self.new_photos += 1
-                else:
-                    self.modified_photos += 1
+                sys.exit(1)
 
-                self._progress('Fetching %s' % photo_basename)
-                with open(self.tmp_filename, 'wb') as tmp_file:
-                    # Use 1 MiB chunks.
-                    for chunk in request.iter_content(2**20):
-                        tmp_file.write(chunk)
-                os.rename(self.tmp_filename, photo_filename)
+            # Write to temp file then rename to avoid incomplete files
+            # in case of failure part-way through.
+            with open(self.tmp_filename, 'wb') as tmp_file:
+                # Use 1 MiB chunks.
+                for chunk in request.iter_content(2**20):
+                    tmp_file.write(chunk)
+            os.rename(self.tmp_filename, photo_filename)
         else:
             self._verbose('Skipping %s because we already have it'
                           % photo_basename)
@@ -570,27 +591,33 @@ class FlickrMirrorer(object):
             return '%s.%s' % (photo['id'], photo['originalformat'])
 
         if mediatype == 'video':
-            # The photo URL gets redirected to the CDN. By looking at
-            # the CDN URL, we can find out the video's original name.
+            # TODO: If Flickr begins including the file extension in the
+            # video metadata then this code should be changed to behave
+            # like the photo case, above.
+            # The photo metadata for videos does not indicate the file
+            # extension. If we've already saved the video locally then
+            # we can get the basename from the local file.
+            for f in glob.iglob(os.path.join(self.photostream_dir, photo['id']) + '*'):
+                if not f.endswith('metadata'):
+                    return os.path.basename(f)
+
+            # Otherwise, make an HTTP HEAD request to get the response
+            # headers we'd see when trying to download the photo. This
+            # URL gets redirected to the CDN with a URL that includes
+            # the video's original name.
+            # TODO: Note that this started failing on 2016-06-25. It
+            # seems to be impossible to download original video files
+            # via the Flickr API now. The best we can do is show the
+            # user a download URL and ask them to download. For a little
+            # more context see:
+            # https://www.flickr.com/groups/51035612836@N01/discuss/72157671986445591/72157673833636861
+            # https://groups.yahoo.com/neo/groups/yws-flickr/conversations/topics/9610
+            # https://groups.yahoo.com/neo/groups/yws-flickr/conversations/topics/9617
             head = requests.head(self._get_photo_url(photo), allow_redirects=True)
             if head.status_code is not 200:
-                video_files = []
-                for i in os.listdir(self.photostream_dir):
-                    if os.path.isfile(os.path.join(self.photostream_dir, i)) and photo['id'] in i and not i.endswith(
-                            'metadata'):
-                        video_files.append(i)
-                assert len(video_files) <= 1
-                if len(video_files) > 0:
-                    return video_files[0]
-                else:
-                    # For some videos the above URL doesn't work, and the only way I know how to
-                    # get those is to download them manually using a logged in web browser. Just
-                    # tell the user that. /johan.walles@gmail.com - 2016feb12
-                    sys.stderr.write(
-                        'Manual download required: https://www.flickr.com/video_download.gne?id=%s\n' % photo['id'])
-                    # Video format is unknown until we manually download the file
-                    # We use .mov and try to correct it in metadata files, after we have the manually downloaded files
-                    return '%s.mov' % (photo['id'])
+                raise VideoDownloadError(
+                    'Manual download required: '
+                    'https://www.flickr.com/video_download.gne?id=%s' % photo['id'])
 
             return os.path.basename(urllib.parse.urlparse(head.url).path)
 
@@ -636,11 +663,10 @@ class FlickrMirrorer(object):
         Args:
             timestamp (datetime.datetime)
         """
-        if os.path.isfile(filename):
-            timestamp_since_epoch = time.mktime(timestamp.timetuple())
-            if timestamp_since_epoch != os.path.getmtime(filename):
-                os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
-                self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
+        timestamp_since_epoch = time.mktime(timestamp.timetuple())
+        if timestamp_since_epoch != os.path.getmtime(filename):
+            os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
     def _write_json_if_different(self, filename, data):
         """Write the given data to the specified filename, but only if it's
@@ -653,6 +679,8 @@ class FlickrMirrorer(object):
             # Data has not changed--do nothing.
             return False
 
+        # Write to temp file then rename to avoid incomplete files
+        # in case of failure part-way through.
         with open(self.tmp_filename, 'w') as json_file:
             json.dump(data, json_file)
         os.rename(self.tmp_filename, filename)
