@@ -31,6 +31,19 @@ e.x. ./flickrmirrorer.py /mnt/backup/flickr/
 See `--help` for options.
 
 
+Features
+========
+The script allows you to mirror only photos, only videos, or both. See
+the `--ignore-videos` and `--ignore-photos` command line options.
+
+Your local backup can be cleaned automatically, so that files that were
+deleted in Flickr are deleted locally. Deletion is disabled by default. See
+the `--delete-unknown` command line option.
+
+The script displays a summary of its actions if `--statistics` is passed on
+the command line.
+
+
 Running via Cron
 ================
 Running this script regularly via cron is a good way to keep your backup
