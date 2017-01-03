@@ -217,11 +217,6 @@ class FlickrMirrorer(object):
 
             self.flickr.get_access_token(six.u(verifier))
 
-        if self.clean:
-            sys.stdout.write('Your Flickr backup will be cleaned according to what is now on Flickr\n');
-        else:
-            sys.stdout.write('Your Flickr backup will not be cleaned according to what is now on Flickr\n');
-
         if self.ignore_photos and self.ignore_videos:
             sys.stderr.write(
                 'There is nothing to do because photos and videos are ignored. '
@@ -230,6 +225,8 @@ class FlickrMirrorer(object):
 
         self._verbose('Photos will be %s' % ('ignored' if self.ignore_photos else 'mirrored'))
         self._verbose('Videos will be %s' % ('ignored' if self.ignore_videos else 'mirrored'))
+        self._verbose('Unknown files in %s will%s be deleted' % (
+            self.dest_dir, '' if self.clean else ' not'))
 
         # Create destination directory
         _ensure_dir_exists(self.dest_dir)
