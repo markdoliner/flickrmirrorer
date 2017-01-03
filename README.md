@@ -127,3 +127,14 @@ TODO
 * Mirror comments
 * Store order of photos in photostream
 * Store order of albums in collections
+
+
+Changes
+=======
+2017-01-02
+- Don't warn about downloading videos if they've already been downloaded.
+- Unknown files are no longer deleted by default.
+- Added new command line option `--delete-unknown`
+- Added new command line option `--ignore-photos`
+- Added new command line option `--ignore-videos`
+- Print statistics even if script is killed by CTRL+C.
