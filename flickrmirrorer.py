@@ -162,14 +162,15 @@ class FlickrMirrorer(object):
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos, delete_unknown):
-        self.dest_dir = dest_dir
-        self.verbosity = verbosity
-        self.print_statistics = print_statistics
-        self.include_views = include_views
-        self.ignore_photos = ignore_photos
-        self.ignore_videos = ignore_videos
-        self.delete_unknown = delete_unknown
+    def __init__(self, args):
+        self.dest_dir = args.destdir
+        self.verbosity = args.verbosity
+        self.print_statistics = args.statistics
+        self.include_views = args.include_views
+        self.ignore_photos = args.ignore_photos
+        self.ignore_videos = args.ignore_videos
+        self.delete_unknown = args.delete_unknown
+
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.albums_dir = os.path.join(self.dest_dir, 'Albums')
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
@@ -794,8 +795,7 @@ def main():
 
     args = parser.parse_args()
 
-    mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos, args.delete_unknown)
+    mirrorer = FlickrMirrorer(args)
     mirrorer.run()
 
 
