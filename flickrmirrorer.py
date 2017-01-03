@@ -222,8 +222,8 @@ class FlickrMirrorer(object):
                 'Please choose to mirror at least photos or videos.\n')
             return
 
-        self._verbose('Photos will be %s\n' % ('ignored' if self.ignore_photos else 'mirrored'))
-        self._verbose('Videos will be %s\n' % ('ignored' if self.ignore_videos else 'mirrored'))
+        self._verbose('Photos will be %s' % ('ignored' if self.ignore_photos else 'mirrored'))
+        self._verbose('Videos will be %s' % ('ignored' if self.ignore_videos else 'mirrored'))
 
         # Create destination directory
         _ensure_dir_exists(self.dest_dir)
@@ -251,7 +251,7 @@ class FlickrMirrorer(object):
         """Download all our pictures and metadata.
         If you have a lot of photos then this function will take a while."""
 
-        self._verbose('Fetching from photostream')
+        self._verbose('Mirroring all photos and videos in photostream')
 
         _ensure_dir_exists(self.photostream_dir)
 
@@ -395,7 +395,7 @@ class FlickrMirrorer(object):
     def _mirror_albums(self):
         """Create a directory for each album, and create symlinks to the
         files in the photostream."""
-        self._verbose('Mirroring albums locally...')
+        self._verbose('Mirroring albums')
 
         album_dirs = set()
 
@@ -409,8 +409,6 @@ class FlickrMirrorer(object):
         self._delete_unknown_files(self.albums_dir, album_dirs, 'album')
 
     def _mirror_album(self, album):
-        self._verbose('Mirroring album %s' % album['title']['_content'])
-
         album_basename = self._get_album_dirname(album['id'], album['title']['_content'])
         album_dir = os.path.join(self.albums_dir, album_basename)
 
@@ -525,7 +523,7 @@ class FlickrMirrorer(object):
     def _mirror_collections(self):
         """Create a directory for each collection, and create symlinks to the
         albums."""
-        self._verbose('Creating local collections...')
+        self._verbose('Mirroring collections')
 
         collection_dirs = set()
 
