@@ -162,14 +162,14 @@ class FlickrMirrorer(object):
     tmp_filename = None
     flickr = None
 
-    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos, clean):
+    def __init__(self, dest_dir, verbosity, print_statistics, include_views, ignore_photos, ignore_videos, delete_unknown):
         self.dest_dir = dest_dir
         self.verbosity = verbosity
         self.print_statistics = print_statistics
         self.include_views = include_views
         self.ignore_photos = ignore_photos
         self.ignore_videos = ignore_videos
-        self.clean = clean
+        self.delete_unknown = delete_unknown
         self.photostream_dir = os.path.join(self.dest_dir, 'photostream')
         self.albums_dir = os.path.join(self.dest_dir, 'Albums')
         self.collections_dir = os.path.join(self.dest_dir, 'Collections')
@@ -226,7 +226,7 @@ class FlickrMirrorer(object):
         self._verbose('Photos will be %s' % ('ignored' if self.ignore_photos else 'mirrored'))
         self._verbose('Videos will be %s' % ('ignored' if self.ignore_videos else 'mirrored'))
         self._verbose('Unknown files in %s will%s be deleted' % (
-            self.dest_dir, '' if self.clean else ' not'))
+            self.dest_dir, '' if self.delete_unknown else ' not'))
 
         # Create destination directory
         _ensure_dir_exists(self.dest_dir)
@@ -687,16 +687,19 @@ class FlickrMirrorer(object):
         return True
 
     def _delete_unknown_files(self, rootdir, known, knowntype):
-        """If the clean option is used, delete all files and directories in rootdir except the
-        known files. knowntype is only used for the log message.
-        Returns the number of deleted entries."""
+        """If the delete_unknown option is used, delete all files and
+        directories in rootdir except the known files.
 
+        knowntype is only used for the log message.
+
+        Returns the number of deleted entries.
+        """
         # return early if the rootdir doesn't exist
         if not os.path.isdir(rootdir):
             return 0
 
-        # delete only if the clean option is active
-        if not self.clean:
+        # delete only if the --delete-unknown was specified.
+        if not self.delete_unknown:
             return 0
 
         delete_count = 0
@@ -784,15 +787,15 @@ def main():
         help='do not mirror videos')
 
     parser.add_argument(
-        '--clean', action='store_const',
-        dest='clean', default=False, const=True,
-        help='delete everything that is no longer in Flickr. '
+        '--delete-unknown', action='store_const',
+        dest='delete_unknown', default=False, const=True,
+        help='delete unrecognized files in the destination directory. '
              'Warning: if you choose to ignore photos or videos, they will be deleted!')
 
     args = parser.parse_args()
 
     mirrorer = FlickrMirrorer(args.destdir, args.verbosity,
-                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos, args.clean)
+                              args.statistics, args.include_views, args.ignore_photos, args.ignore_videos, args.delete_unknown)
     mirrorer.run()
 
 
