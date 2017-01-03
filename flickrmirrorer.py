@@ -464,22 +464,7 @@ class FlickrMirrorer(object):
 
         self._verbose('Creating local directory for photos not in any album')
 
-        old_album_dir = os.path.join(self.dest_dir, 'Not in any set')
         album_dir = os.path.join(self.dest_dir, 'Not in any album')
-
-        # Rename dir from old name to new name, if applicable. This is only
-        # needed to migrate people who used older versions of this script.
-        # It can be removed once everyone has been migrated.
-        # TODO: Remove this and the old_album_dir variable at some point. It
-        # was added on 2014-12-14. Maybe remove it a year later?
-        if os.path.isdir(old_album_dir):
-            if os.path.exists(album_dir):
-                sys.stderr.write(
-                    'Error: Wanted to rename %s to %s, but the latter '
-                    'already exists. Please remove one of these.\n'
-                    % (old_album_dir, album_dir))
-                sys.exit(1)
-            os.rename(old_album_dir, album_dir)
 
         # TODO: Ideally we would inspect the existing directory and
         # make sure it's correct, but that's a lot of work. For now
