@@ -217,13 +217,13 @@ class FlickrMirrorer(object):
             self.flickr.get_access_token(six.u(verifier))
 
         if self.ignore_photos and self.ignore_videos:
-            sys.stdout.write(
+            sys.stderr.write(
                 'There is nothing to do because photos and videos are ignored. '
                 'Please choose to mirror at least photos or videos.\n')
             return
 
-        sys.stdout.write('Photos will be %s\n' % ('ignored' if self.ignore_photos else 'mirrored'))
-        sys.stdout.write('Videos will be %s\n' % ('ignored' if self.ignore_videos else 'mirrored'))
+        self._verbose('Photos will be %s\n' % ('ignored' if self.ignore_photos else 'mirrored'))
+        self._verbose('Videos will be %s\n' % ('ignored' if self.ignore_videos else 'mirrored'))
 
         # Create destination directory
         _ensure_dir_exists(self.dest_dir)
@@ -666,7 +666,6 @@ class FlickrMirrorer(object):
         timestamp_since_epoch = time.mktime(timestamp.timetuple())
         if timestamp_since_epoch != os.path.getmtime(filename):
             os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
-            self._verbose("%s: Re-timestamped to %s" % (os.path.basename(filename), timestamp))
 
     def _write_json_if_different(self, filename, data):
         """Write the given data to the specified filename, but only if it's
