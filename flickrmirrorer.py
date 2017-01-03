@@ -344,7 +344,7 @@ class FlickrMirrorer(object):
                 with open(metadata_filename) as json_file:
                     metadata = json.load(json_file)
             except IOError as ex:
-                sys.stderr.write('Error reading %s: %s\n' % (filename, ex))
+                sys.stderr.write('Error reading %s: %s\n' % (metadata_filename, ex))
                 sys.exit(1)
             should_download_photo |= metadata['lastupdate'] != photo['lastupdate']
 
