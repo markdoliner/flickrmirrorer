@@ -298,9 +298,9 @@ class FlickrMirrorer(object):
         if download_errors:
             sys.stderr.write(
                 'The Flickr API does not allow downloading original video files.\n'
-                'Please save the files listed below to the photostream directory.\n'
+                'Please save the files listed below to the %s directory.\n'
                 'Note: You must be logged into your Flickr account in order to download '
-                'your full resolution videos!\n')
+                'your full resolution videos!\n' % self.photostream_dir)
             for error in download_errors:
                 sys.stderr.write('  %s\n' % error)
             sys.exit(1)
@@ -337,20 +337,24 @@ class FlickrMirrorer(object):
             sys.stderr.write('Error: %s exists but is not a file. This is not allowed.\n' % metadata_filename)
             sys.exit(1)
 
-        # Download photo if photo or metadata files don't exist locally,
-        # or if the metadata file exists and the lastupdate timestamp
-        # has changed.
+        # Download photo if it doesn't exist locally or if the metadata
+        # file exists and the lastupdate timestamp has changed.
+        # TODO: Should ideally also set should_download_photo to True if
+        # not os.path.exists(metadata_filename), but that doesn't work
+        # correctly for videos because the metadata file won't have been
+        # created when the video file was created because the video was
+        # downloaded out of band by the user.
         should_download_photo = not os.path.exists(photo_filename)
-        should_download_photo |= not os.path.exists(metadata_filename)
         if not should_download_photo:
             # Download photo if lastupdate timestamp has changed.
             try:
                 with open(metadata_filename) as json_file:
                     metadata = json.load(json_file)
+                should_download_photo |= metadata['lastupdate'] != photo['lastupdate']
             except IOError as ex:
-                sys.stderr.write('Error reading %s: %s\n' % (metadata_filename, ex))
-                sys.exit(1)
-            should_download_photo |= metadata['lastupdate'] != photo['lastupdate']
+                if ex.errno != errno.ENOENT:
+                    sys.stderr.write('Error reading %s: %s\n' % (metadata_filename, ex))
+                    sys.exit(1)
 
         if should_download_photo:
             if not os.path.exists(photo_filename):
