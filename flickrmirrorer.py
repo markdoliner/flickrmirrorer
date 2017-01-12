@@ -131,13 +131,14 @@ def _validate_json_response(rsp):
         sys.exit(1)
 
 
-def get_timestamp(photo):
-    """
-    Return photo timestamp, get it from:
-    1. datetaken unless datetakenunknown
-    2. parse from photo title 'YYYYMMDD_HHmmss'
-    3. datetaken anyway; it's available even if unknown, so we just go with
-    whatever Flickr made up for us
+def get_photo_datetime(photo):
+    """Return date a photo was taken.
+
+    Obtained from:
+    1. 'datetaken' unless 'datetakenunknown'
+    2. Parsed from photo title 'YYYYMMDD_HHmmss'
+    3. 'datetaken' anyway; it's available even if unknown, so we just
+       go with whatever Flickr made up for us.
 
     Returns:
         datetime.datetime
@@ -394,9 +395,9 @@ class FlickrMirrorer(object):
                 'Skipping metadata for %s because we already have it' %
                 photo_basename)
 
-        timestamp = get_timestamp(photo)
-        self._set_timestamp_if_different(timestamp, photo_filename)
-        self._set_timestamp_if_different(timestamp, metadata_filename)
+        photo_datetime = get_photo_datetime(photo)
+        self._set_timestamp_if_different(photo_datetime, photo_filename)
+        self._set_timestamp_if_different(photo_datetime, metadata_filename)
 
         return {photo_basename, metadata_basename}
 
@@ -662,17 +663,17 @@ class FlickrMirrorer(object):
                 sys.exit(1)
             return True
 
-    def _set_timestamp_if_different(self, timestamp, filename):
+    def _set_timestamp_if_different(self, photo_datetime, filename):
         """Set the access and modified times of a file to the specified
-        timestamp.
+        datetime.
 
         Args:
-            timestamp (datetime.datetime)
+            photo_datetime (datetime.datetime)
         """
         try:
-            timestamp_since_epoch = time.mktime(timestamp.timetuple())
-            if timestamp_since_epoch != os.path.getmtime(filename):
-                os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+            timestamp = time.mktime(photo_datetime.timetuple())
+            if timestamp != os.path.getmtime(filename):
+                os.utime(filename, (timestamp, timestamp))
         except OverflowError:
             self._progress('Error updating timestamp for: %s' % filename)
 
