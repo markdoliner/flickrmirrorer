@@ -669,9 +669,12 @@ class FlickrMirrorer(object):
         Args:
             timestamp (datetime.datetime)
         """
-        timestamp_since_epoch = time.mktime(timestamp.timetuple())
-        if timestamp_since_epoch != os.path.getmtime(filename):
-            os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+        try:
+            timestamp_since_epoch = time.mktime(timestamp.timetuple())
+            if timestamp_since_epoch != os.path.getmtime(filename):
+                os.utime(filename, (timestamp_since_epoch, timestamp_since_epoch))
+        except OverflowError:
+            self._progress('Error updating timestamp for: %s' % filename)
 
     def _write_json_if_different(self, filename, data):
         """Write the given data to the specified filename, but only if it's
