@@ -131,6 +131,9 @@ TODO
 
 Changes
 =======
+2018-06-02
+- Support for nested collections and empty collections.
+
 2017-01-02
 - Don't warn about downloading videos if they've already been downloaded.
 - Unknown files are no longer deleted by default.

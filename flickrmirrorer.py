@@ -541,13 +541,20 @@ class FlickrMirrorer(object):
         _validate_json_response(rsp)
         if rsp['collections']:
             for collection in rsp['collections']['collection']:
-                collection_dirs |= self._mirror_collection(collection)
+                collection_dirs |= self._mirror_collection(self.collections_dir, collection)
 
         self._delete_unknown_files(self.collections_dir, collection_dirs, 'collection')
 
-    def _mirror_collection(self, collection):
+    def _mirror_collection(self, parent_dir, collection):
+        """
+        Args:
+            parent_dir (str): The full path to the directory where this
+                collection should be written.
+            collection (dict): The collection metadata dict as returned
+                by the flickr.collections.getTree API call.
+        """
         collection_basename = self._get_collection_dirname(collection['id'], collection['title'])
-        collection_dir = os.path.join(self.collections_dir, collection_basename)
+        collection_dir = os.path.join(parent_dir, collection_basename)
 
         metadata_filename = os.path.join(collection_dir, 'metadata')
 
@@ -561,12 +568,16 @@ class FlickrMirrorer(object):
             _ensure_dir_exists(collection_dir)
 
             # Create symlinks for each album
-            for album in collection['set']:
+            for album in collection.get('set') or []:
                 album_basename = self._get_album_dirname(album['id'], album['title'])
                 album_fullname = os.path.join(self.albums_dir, album_basename)
                 album_relname = os.path.relpath(album_fullname, collection_dir)
                 symlink_filename = os.path.join(collection_dir, album_basename)
                 os.symlink(album_relname, symlink_filename)
+
+            # Collections can contain infinitely nested collections.
+            for child_collection in collection.get('collection') or []:
+                self._mirror_collection(collection_dir, child_collection)
 
             # Write metadata
             self._write_json_if_different(metadata_filename, collection)
@@ -635,18 +646,15 @@ class FlickrMirrorer(object):
     @staticmethod
     def _get_album_dirname(id_, title):
         safe_title = urllib.parse.quote(title.encode('utf-8'), " ',")
-        # TODO: We use the ID in the name to avoid conflicts when there are
-        #       two albums with the same name. Is there a better way to
-        #       handle that?  Maybe by using the date of the oldest picture
-        #       instead?
+        # The ID is included in the name to avoid collisions when there
+        # are two albums with the same name.
         return '%s - %s' % (safe_title, id_)
 
     @staticmethod
     def _get_collection_dirname(id_, title):
         safe_title = urllib.parse.quote(title.encode('utf-8'), " ',")
-        # TODO: We use the ID in the name to avoid conflicts when there are
-        #       two collections with the same name (is that even possible?)
-        #       Is there a better way to handle that?
+        # The ID is included in the name to avoid collisions when there
+        # are two collections with the same name.
         return '%s - %s' % (safe_title, id_)
 
     @staticmethod
