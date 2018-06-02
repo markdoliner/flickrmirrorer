@@ -1,8 +1,8 @@
-from .flickrmirrorer import get_timestamp
+from .flickrmirrorer import get_photo_datetime
 
 
 def test_unparseable_title_timestamp():
-    timestamp = get_timestamp({
+    timestamp = get_photo_datetime({
         'datetakenunknown': '1',
         'datetaken': '2014-10-01 13:45:37',
         'title': 'flaskpost'
@@ -13,7 +13,7 @@ def test_unparseable_title_timestamp():
 
 
 def test_plain_title_timestamp():
-    timestamp = get_timestamp({
+    timestamp = get_photo_datetime({
         'datetakenunknown': '1',
         'datetaken': '2014-10-01 13:45:37',
         'title': '20151130_135610'
@@ -22,7 +22,7 @@ def test_plain_title_timestamp():
 
 
 def test_known_timestamp():
-    timestamp = get_timestamp({
+    timestamp = get_photo_datetime({
         'datetakenunknown': '0',
         'datetaken': '2015-11-02 12:35:07'
     })
