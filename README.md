@@ -1,3 +1,10 @@
+IMPORTANT NOTE
+==============
+
+Although this script seems to resume the download job if you restart it after a server error, it is known to sometimes not download all files despite appearing to resume the job and finish it.
+
+** If there is a error while running this script, delete the download folder for the job and start the download again scratch **
+
 Overview
 ========
 A small command-line python script that creates a local backup of your
@@ -5,7 +12,6 @@ Flickr data. It mirrors images, video metadata, titles, description, tags,
 albums and collections.
 
 Available at https://github.com/markdoliner/flickrmirrorer
-
 
 Requirements
 ============
