@@ -24,9 +24,9 @@ The script was developed on Linux. It should work on other Unixy operating
 systems such as OS X, hopefully without changes. It could probably be made
 to work on Microsoft Windows with minor changes.
 
-<pre>
+```
 e.x. ./flickrmirrorer.py /mnt/backup/flickr/
-</pre>
+```
 
 See `--help` for options.
 
@@ -50,11 +50,11 @@ Running this script regularly via cron is a good way to keep your backup
 up to date. For example, create the file /etc/cron.d/flickr_backup
 containing the following:
 
-<pre>
+```
 # Run Flickr photo mirroring script.
 # Sleep between 0 and 4 hours to distribute load on Flickr's API servers.
 0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /usr/local/bin/flickrmirrorer.py -q /mnt/backup/flickr/
-</pre>
+```
 
 If you run the cronjob as a user other than yourself you may
 need to take additional steps to make sure the cron user is able to
@@ -63,19 +63,20 @@ authenticate. The steps are something like this:
 1. Run the script as yourself the first time around. It should pop open
    your web browser and request permission.
 2. After granting permission an authorization token is stored in
-   ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
+   `~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token`
 3. Copy this file to the home directory of the cron user:
-<pre>
-sudo mkdir -p /root/.flickr/9c5c431017e712bde232a2f142703bb2/
-sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
-        /root/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
-</pre>
+   ```
+   sudo mkdir -p /root/.flickr/9c5c431017e712bde232a2f142703bb2/
+   sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
+           /root/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
+   ```
 
 
 Output
 ======
 The script creates this directory hierarchy:
-<pre>
+
+```
 dest_dir
 dest_dir/photostream/
 dest_dir/photostream/12345.jpg
@@ -93,7 +94,7 @@ dest_dir/Albums/Waterfalls - 6789/2_12347.jpg -> ../../photostream/12347.jpg
 dest_dir/Collections/
 dest_dir/Collections/Nature - 2634-98761234/Waterfalls - 6789 -> ../../Albums/Waterfalls - 6789
 dest_dir/Collections/Nature - 2634-98761234/Mountains - 6790  -> ../../Albums/Mountains - 6790
-</pre>
+```
 
 The metadata files contain JSON data dumped from the Flickr API.
 It's not the prettiest thing in the world... but it does contain
@@ -104,8 +105,10 @@ the photostream. The symlink names in albums are numbered so as to
 preserve the order.
 
 Routine status is printed to stdout by default.
+
 Errors are printed to stderr.
-To see more options run with the --help flag.
+
+To see more options run with the `--help` flag.
 
 
 A note about videos
