@@ -7,17 +7,6 @@ albums and collections.
 Available at https://github.com/markdoliner/flickrmirrorer
 
 
-Requirements
-============
-* python 2.something or python 3.anything
-* python dateutil
-  * Ubuntu: apt-get install python-dateutil
-* python flickrapi library 2.0 or newer.
-  * Homepage: http://stuvel.eu/flickrapi
-  * Ubuntu 16.04 LTS Xenial and newer: apt-get install python-flickrapi
-* python requests
-
-
 Usage
 =====
 The script was developed on Linux. It should work on other Unixy operating
@@ -43,6 +32,18 @@ the `--delete-unknown` command line option.
 The script displays a summary of its actions if `--statistics` is passed on
 the command line.
 
+Requirements
+============
+
+(These are covered by running `pip install -r requirements.txt`)
+
+* python 2.something or python 3.anything
+* python dateutil
+  * Ubuntu: apt-get install python-dateutil
+* python flickrapi library 2.0 or newer.
+  * Homepage: http://stuvel.eu/flickrapi
+  * Ubuntu 16.04 LTS Xenial and newer: apt-get install python-flickrapi
+* python requests
 
 Running via Cron
 ================
