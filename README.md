@@ -13,9 +13,23 @@ The script was developed on Linux. It should work on other Unixy operating
 systems such as OS X, hopefully without changes. It could probably be made
 to work on Microsoft Windows with minor changes.
 
+To set `flickrmirrorer` up the first time:
+
 ```
-e.x. ./flickrmirrorer.py /mnt/backup/flickr/
+git clone https://github.com/markdoliner/flickrmirrorer
+cd flickrmirrorer
+pip install -r requirements.txt
 ```
+
+Then run:
+
+```
+python flickrmirrorer.py /mnt/backup/flickr/
+```
+
+(Replace `/mnt/backup/flickr` with the path to your backup)
+
+The first time you run this command, it will pop open your web browser and request permission from Flickr.
 
 See `--help` for options.
 
@@ -35,7 +49,7 @@ the command line.
 Requirements
 ============
 
-(These are covered by running `pip install -r requirements.txt`)
+(These are covered by running `pip install -r requirements.txt` as mentioned above)
 
 * python 2.something or python 3.anything
 * python dateutil
