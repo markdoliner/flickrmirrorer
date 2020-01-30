@@ -632,7 +632,7 @@ class FlickrMirrorer(object):
             # https://groups.yahoo.com/neo/groups/yws-flickr/conversations/topics/9610
             # https://groups.yahoo.com/neo/groups/yws-flickr/conversations/topics/9617
             head = requests.head(self._get_photo_url(photo), allow_redirects=True)
-            if head.status_code is not 200:
+            if head.status_code != 200:
                 raise VideoDownloadError(
                     'Manual download required: '
                     'https://www.flickr.com/video_download.gne?id=%s' % photo['id'])
