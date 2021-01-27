@@ -6,6 +6,10 @@ albums and collections.
 
 Available at https://github.com/markdoliner/flickrmirrorer
 
+Note that if you just want to download your Flickr data once you can use
+the "Request my Flickr data" button at the bottom of
+https://www.flickr.com/account — this script is intended for keeping a
+local copy of your Flickr data updated on an ongoing basis.
 
 Usage
 =====
