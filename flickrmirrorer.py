@@ -48,11 +48,10 @@ import os
 import requests
 import shutil
 import signal
-import six
 import sys
 import time
+import urllib.parse
 import webbrowser
-from six.moves import urllib
 
 try:
     # We try importing simplejson first because it's faster than json
@@ -197,17 +196,14 @@ class FlickrMirrorer(object):
         # if it fails then fall back to manual auth. Really flickrapi
         # should do that for us. Or at least print the URL to the
         # console.
-        if not self.flickr.token_valid(perms=six.u('read')):
-            self.flickr.get_request_token(oauth_callback=six.u('oob'))
-            authorize_url = self.flickr.auth_url(perms=six.u('read'))
+        if not self.flickr.token_valid(perms='read'):
+            self.flickr.get_request_token(oauth_callback='oob')
+            authorize_url = self.flickr.auth_url(perms='read')
             webbrowser.open_new_tab(authorize_url)
 
-            # Use input on python 3 and newer. Use raw_input for
-            # backward compatability with older python.
+            verifier = input(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
 
-            verifier = getattr(__builtins__, 'raw_input', input)(PLEASE_GRANT_AUTHORIZATION_MSG % authorize_url)
-
-            self.flickr.get_access_token(six.u(verifier))
+            self.flickr.get_access_token(verifier)
 
         if self.ignore_photos and self.ignore_videos:
             sys.stderr.write(
