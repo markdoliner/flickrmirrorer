@@ -45,7 +45,6 @@ import errno
 import glob
 import math
 import os
-import pkg_resources
 import requests
 import shutil
 import signal
@@ -86,15 +85,6 @@ NUM_PHOTOS_PER_BATCH = 500
 class VideoDownloadError(Exception):
     def __str__(self):
         return '%s' % self.args[0]
-
-
-def _check_flickrapi_version():
-    flickrapi_version = pkg_resources.get_distribution('flickrapi').version
-    if pkg_resources.parse_version(flickrapi_version) < pkg_resources.parse_version('2.0'):
-        sys.stderr.write(
-            'Error: The installed version of the flickrapi python \n'
-            '       library (%s) is too old. 2.0 or newer is required.\n' % flickrapi_version)
-        sys.exit(1)
 
 
 def _ensure_dir_exists(path):
@@ -763,8 +753,6 @@ class FlickrMirrorer(object):
 
 
 def main():
-    _check_flickrapi_version()
-
     parser = argparse.ArgumentParser(
         description='Create a local mirror of your flickr data.')
 
