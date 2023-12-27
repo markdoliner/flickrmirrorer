@@ -137,7 +137,7 @@ The Flickr API does not support downloading original video files. If this script
 
 Running unit tests
 ==================
-Run [`py.test`](http://pytest.org/).
+Run `python -m unittest`
 
 
 TODO
