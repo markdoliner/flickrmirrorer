@@ -12,7 +12,7 @@
 # Copyright (c)
 #   Ciprian Radu, 2016
 #   Johan Walles, 2016
-#   Mark Doliner, 2012-2017
+#   Mark Doliner, 2012-2023
 #   Mattias Holmlund, 2013
 #   Steve Cassidy, 2016
 #   Victor Engmark, 2016

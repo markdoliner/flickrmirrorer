@@ -14,26 +14,27 @@ local copy of your Flickr data updated on an ongoing basis.
 Usage
 =====
 The script was developed on Linux. It should work on other Unixy operating
-systems such as OS X, hopefully without changes. It could probably be made
+systems like macOS, hopefully without changes. It could probably be made
 to work on Microsoft Windows with minor changes.
 
-To set `flickrmirrorer` up the first time:
+One time setup:
 
 ```
 git clone https://github.com/markdoliner/flickrmirrorer
 cd flickrmirrorer
-pip install -r requirements.txt
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-Then run:
+Then run this to backup your Flickr data:
 
 ```
-python flickrmirrorer.py /mnt/backup/flickr/
+.venv/bin/python flickrmirrorer.py /mnt/backup/flickr/
 ```
 
 (Replace `/mnt/backup/flickr` with the path to your backup)
 
-The first time you run this command, it will pop open your web browser and request permission from Flickr.
+The first time you run this command, it will open your web browser and request permission from Flickr.
 
 See `--help` for options.
 
@@ -55,39 +56,37 @@ Requirements
 
 (These are covered by running `pip install -r requirements.txt` as mentioned above)
 
-* python 2.something or python 3.anything
+* python 3
 * python dateutil
-  * Ubuntu: apt-get install python-dateutil
 * python flickrapi library 2.0 or newer.
-  * Homepage: http://stuvel.eu/flickrapi
-  * Ubuntu 16.04 LTS Xenial and newer: apt-get install python-flickrapi
+  * Homepage: https://stuvel.eu/software/flickrapi/
 * python requests
 
 Running via Cron
 ================
 Running this script regularly via cron is a good way to keep your backup
-up to date. For example, create the file /etc/cron.d/flickr_backup
-containing the following:
+up to date. On Linux you can use `crontab -e` to configure per-user cron jobs:
 
 ```
 # Run Flickr photo mirroring script.
 # Sleep between 0 and 4 hours to distribute load on Flickr's API servers.
-0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /usr/local/bin/flickrmirrorer.py -q /mnt/backup/flickr/
+0 3 * * 2  root  sleep $((`bash -c 'echo $RANDOM'` \% 14400)) && /home/my_user/flickrmirrorer/.venv/bin/python flickrmirrorer.py --quiet /mnt/backup/flickr/
 ```
 
-If you run the cronjob as a user other than yourself you may
+When using per-user cron jobs you shouldn't need to do anything special to
+allow the script to authenticate. However, if you run it as a system-wide
+cron job and it runs as a user other than yourself then you will
 need to take additional steps to make sure the cron user is able to
 authenticate. The steps are something like this:
 
-1. Run the script as yourself the first time around. It should pop open
+1. Run the script as yourself the first time around. It should open
    your web browser and request permission.
 2. After granting permission an authorization token is stored in
-   `~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token`
+   `~/.flickr/oauth-tokens.sqlite`
 3. Copy this file to the home directory of the cron user:
    ```
-   sudo mkdir -p /root/.flickr/9c5c431017e712bde232a2f142703bb2/
-   sudo cp ~/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token \
-           /root/.flickr/9c5c431017e712bde232a2f142703bb2/auth.token
+   sudo mkdir -p /root/.flickr/
+   sudo cp ~/.flickr/oauth-tokens.sqlite /root/.flickr/oauth-tokens.sqlite
    ```
 
 
@@ -132,7 +131,9 @@ To see more options run with the `--help` flag.
 
 A note about videos
 ===================
-The Flickr API does not support downloading original video files. If this script encounters videos in your photostream, it asks you download them (you must be logged in to your Flickr account).
+The Flickr API does not support downloading original video files. If this
+script encounters videos in your photostream, it asks you download them
+(you must be logged in to your Flickr account).
 
 
 Running unit tests
@@ -153,6 +154,11 @@ TODO
 
 Changes
 =======
+2023-12-27
+- Drop support for Python 2.
+- Change tests to use standard Python unittest library instead of pytest.
+- Update documentation to suggest using a venv.
+
 2018-06-02
 - Support for nested collections and empty collections.
 
