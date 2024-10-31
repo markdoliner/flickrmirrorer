@@ -344,31 +344,44 @@ class FlickrMirrorer(object):
                     sys.exit(1)
 
         if should_download_photo:
-            if not os.path.exists(photo_filename):
-                self.new_photos += 1
-            else:
-                self.modified_photos += 1
+            sleep_time = 10
 
-            self._progress('Fetching %s' % photo_basename)
-            request = requests.get(url, stream=True)
-            if not request.ok:
-                if photo['media'] == 'video':
-                    raise VideoDownloadError(
-                        'Manual download required (video may have changed): '
-                        'https://www.flickr.com/video_download.gne?id=%s' % photo['id'])
+            while True:
+                if not os.path.exists(photo_filename):
+                    self.new_photos += 1
+                else:
+                    self.modified_photos += 1
 
-                sys.stderr.write(
-                    'Error: Failed to fetch %s: %s: %s\n'
-                    % (url, request.status_code, request.reason))
-                sys.exit(1)
+                self._progress('Fetching %s' % photo_basename)
+                request = requests.get(url, stream=True)
 
-            # Write to temp file then rename to avoid incomplete files
-            # in case of failure part-way through.
-            with open(self.tmp_filename, 'wb') as tmp_file:
-                # Use 1 MiB chunks.
-                for chunk in request.iter_content(2**20):
-                    tmp_file.write(chunk)
-            os.rename(self.tmp_filename, photo_filename)
+                if request.ok:
+                    # Write to temp file then rename to avoid incomplete files in case of failure part-way through.
+                    with open(self.tmp_filename, 'wb') as tmp_file:
+                        # Use 1 MiB chunks.
+                        for chunk in request.iter_content(2**20):
+                            tmp_file.write(chunk)
+                    os.rename(self.tmp_filename, photo_filename)
+                    break  # Exit the loop if request is successful
+
+                else:
+                    if photo['media'] == 'video':
+                        raise VideoDownloadError(
+                            'Manual download required (video may have changed): '
+                            'https://www.flickr.com/video_download.gne?id=%s' % photo['id']
+                        )
+
+                    # Print error and retry for non-video files
+                    sys.stderr.write(
+                        'Error: Failed to fetch %s: %s: %s\n'
+                        % (url, request.status_code, request.reason)
+                    )
+
+                    # Sleep some time before retrying
+                    sys.stderr.write('Sleep for %i seconds and will retry...\n' % sleep_time)
+
+                    time.sleep(sleep_time)
+
         else:
             self._verbose('Skipping %s because we already have it'
                           % photo_basename)
