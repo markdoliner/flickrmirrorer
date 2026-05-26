@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> **Current Status:** I've stopped using Flickr and so I no longer have a need for this script
+> and don't intend to maintain it in any way. I think the target audience
+> is probably very small. Of course feel free to continue using it as you
+> see fit, or fork and modify if appropriate.
+
 Overview
 ========
 A small command-line python script that creates a local backup of your
